@@ -1,8 +1,9 @@
 ﻿@page "/fetchdata"
+@attribute [Authorize]
 
 <PageTitle>Weather forecast</PageTitle>
 
-@using AdminConsole1.Data
+@using AdminConsole.Data
 @inject WeatherForecastService ForecastService
 
 <h1>Weather forecast</h1>

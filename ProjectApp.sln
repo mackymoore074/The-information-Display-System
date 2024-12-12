@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary", "ClassLibrar
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication", "WebApplication\WebApplication.csproj", "{0E7B5D54-9963-4C41-B022-7F0F3D8415B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdminConsole1", "AdminConsole1\AdminConsole1.csproj", "{AFA7C766-CA30-4570-A693-5C52EE33B066}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdminConsole", "AdminConsole1\AdminConsole.csproj", "{AFA7C766-CA30-4570-A693-5C52EE33B066}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

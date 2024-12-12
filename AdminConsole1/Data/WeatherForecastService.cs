@@ -1,4 +1,4 @@
-namespace AdminConsole1.Data
+namespace AdminConsole.Data
 {
     public class WeatherForecastService
     {

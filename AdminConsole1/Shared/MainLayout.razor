@@ -1,6 +1,9 @@
 ﻿@inherits LayoutComponentBase
+@using AdminConsole.Data.Authentication
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
 
-<PageTitle>AdminConsole1</PageTitle>
+<PageTitle>AdminConsole</PageTitle>
 
 <div class="page">
     <div class="sidebar">
@@ -9,7 +12,14 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            @if (user != null)
+            {
+                <div class="user-profile">
+                    <span class="oi oi-person me-2"></span>
+                    @($"{user.FirstName} {user.LastName}")
+                    <span class="badge bg-secondary ms-2">@user.Role</span>
+                </div>
+            }
         </div>
 
         <article class="content px-4">
@@ -17,3 +27,27 @@
         </article>
     </main>
 </div>
+
+@code {
+    private UserData? user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await LocalStorage.GetItemAsync<UserData>("user");
+    }
+}
+
+<style>
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .badge {
+        font-size: 0.8em;
+        padding: 0.4em 0.6em;
+    }
+</style>

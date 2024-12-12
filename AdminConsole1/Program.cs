@@ -1,4 +1,4 @@
-using AdminConsole1.Data;
+using AdminConsole.Data;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
