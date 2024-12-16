@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Blazored.LocalStorage;
+using ClassLibrary.User;
 
 namespace AdminConsole.Data.Authentication
 {
@@ -72,22 +73,5 @@ namespace AdminConsole.Data.Authentication
         }
     }
 
-    public class UserData
-    {
-        public int AdminId { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
-    }
-
-    public class LoginData
-    {
-        public string Token { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
-        public int AdminId { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-    }
+    
 }
