@@ -28,12 +28,12 @@ namespace TheWebApplication.Controllers
             _logger = logger;
         }
 
-        // GET: api/location
         [HttpGet("get-location")]
         public async Task<ActionResult<IEnumerable<LocationDto>>> GetLocations()
         {
             try
             {
+                _logger.LogInformation("Fetching locations...");
                 var locations = await _context.Locations
                     .Select(l => new LocationDto
                     {
@@ -44,14 +44,23 @@ namespace TheWebApplication.Controllers
                     })
                     .ToListAsync();
 
+                if (locations == null || !locations.Any())
+                {
+                    _logger.LogWarning("No locations found in the database.");
+                    return NotFound("No locations found.");
+                }
+
+                _logger.LogInformation($"Fetched {locations.Count} locations.");
                 return Ok(locations);
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Error in GetLocations: {ex.Message}", ex);
                 await LogErrorToDatabaseAsync("Error in GetLocations", ex);
                 return StatusCode(500, "Internal server error.");
             }
         }
+
 
         // GET: api/location/{id}
         [HttpGet("{id}")]
