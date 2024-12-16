@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 
@@ -11,10 +12,23 @@ namespace ClassLibrary.Models
 {
     public class Department
     {
+        //public Department()
+        //{
+        //    AdminDepartmentLocations = new List<AdminDepartmentLocation>();
+        //}
+
+        public Department()
+        {
+            Employees = new List<Employee>();
+            NewsItemDepartments = new List<NewsItemDepartment>();
+            AdminDepartmentLocations = new List<AdminDepartmentLocation>();
+        }
+
         public int Id { get; set; }
 
         [Required]
         [StringLength(100)]
+        [JsonPropertyName("name")]
         public string Name { get; set; } // Department name (e.g., "Mental Health", "Bliss")
 
         public string Description { get; set; } // Description of the department
@@ -27,15 +41,7 @@ namespace ClassLibrary.Models
         // Many-to-many relationship with NewsItems
         public ICollection<NewsItemDepartment> NewsItemDepartments { get; set; }
         public ICollection<AdminDepartmentLocation> AdminDepartmentLocations { get; set; }
-        public Department()
-        {
-            Employees = new List<Employee>();
-            NewsItemDepartments = new List<NewsItemDepartment>();
-            AdminDepartmentLocations = new List<AdminDepartmentLocation>();
-        }
-
-
-
+        
     }
 
 }

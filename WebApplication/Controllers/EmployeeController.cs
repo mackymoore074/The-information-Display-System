@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using ClassLibrary.Models;
 using ClassLibrary.DtoModels.Employee;
-using ClassLibrary;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.API;
 

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ClassLibrary.Migrations
 {
-    public partial class Create : Migration
+    public partial class init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -406,7 +406,7 @@ namespace ClassLibrary.Migrations
             migrationBuilder.InsertData(
                 table: "Admins",
                 columns: new[] { "Id", "AgencyId", "DateCreated", "DepartmentId", "Email", "FirstName", "LastLogin", "LastName", "LocationId", "PasswordHash", "Role", "ScreenId" },
-                values: new object[] { 1, null, new DateTime(2024, 12, 16, 18, 17, 27, 340, DateTimeKind.Utc).AddTicks(1136), null, "admin@company.com", "John", new DateTime(2024, 12, 16, 18, 17, 27, 340, DateTimeKind.Utc).AddTicks(1144), "Doe", null, "$2a$11$zCWBGRA2OPDCXSvsbcinIeNhABHEA9U8fp0zq1KEXulH6hDtXEHPi", 2, null });
+                values: new object[] { 1, null, new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3731), null, "admin@company.com", "John", new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3737), "Doe", null, "$2a$11$vEOnG41t3HF0SoGktYLQjO3PsMl9vUnf1d4gn.R1qI5BDAPN3UUzO", 2, null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AdminDepartmentLocation_AdminId",

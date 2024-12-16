@@ -1,7 +1,8 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
-namespace SystemModels.Models
+namespace ClassLibrary.Models
 {
     public class ScreenDto
     {
@@ -9,7 +10,11 @@ namespace SystemModels.Models
 
         [Required]
         [StringLength(50)]
+        [JsonPropertyName("name")]
         public string Name { get; set; } // Unique screen name (e.g., "DM001", "LH003")
+
+        [JsonPropertyName("location")]
+        public Location Location { get; set; }
 
         public int? LocationId { get; set; } // Foreign key to Location
         public int? DepartmentId { get; set; } // Foreign key to Department
@@ -25,5 +30,10 @@ namespace SystemModels.Models
         public bool IsOnline { get; set; } // Whether the screen is currently online or offline
         public string StatusMessage { get; set; } // A message regarding the screen status
         public string MACAddress { get; set; } // MAC address of the screen
+
+        [JsonPropertyName("departments")]
+        public Department Department { get; set; }
+        [JsonPropertyName("agency")]
+        public Agency Agency { get; set; }
     }
 }

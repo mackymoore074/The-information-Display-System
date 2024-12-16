@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject IOptions<ApiSettings> ApiSettings
 @inject IJSRuntime JSRuntime
+@inject ILocalStorageService _localStorage
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>Screen Management</h4>
@@ -26,9 +27,9 @@
             </tr>
         </thead>
         <tbody>
-            @if (screens != null)
+            @if (screensDto != null)
             {
-                @foreach (var screen in screens)
+                @foreach (var screen in screensDto)
                 {
                     <tr>
                         <td>@screen.Name</td>
@@ -150,8 +151,9 @@
 
 @code {
     private bool showModal;
-    private Screen editingScreen = new();
-    private List<Screen> screens = new();
+    private ScreenDto editingScreen = new();
+    private List<ScreenDto> screensDto = new();
+    //private List<Screen> screens = new();
     private List<Location> locations = new();
     private List<Agency> agencies = new();
     private List<Agency> filteredAgencies = new();
@@ -168,18 +170,48 @@
 
     private async Task LoadScreens()
     {
+
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Screen>>>("/api/screens");
-            if (response?.Success == true)
+
+            var request = new HttpRequestMessage(HttpMethod.Get, $"/api/screen/get-screens");
+            string token = await _localStorage.GetItemAsync<string>("authToken");
+
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var getresult = await Http.SendAsync(request);
+            if (getresult.IsSuccessStatusCode)
             {
-                screens = response.Data;
+                var resp = await getresult.Content.ReadAsStringAsync();
+
+                screensDto = System.Text.Json.JsonSerializer.Deserialize<List<ScreenDto>>(resp);
             }
+            else
+            {
+                throw new Exception($"Error fetching data: {getresult.StatusCode}");
+            }
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading screens: {ex}");
+            await JSRuntime.InvokeVoidAsync("console.error", $"Error loading locations: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "Failed to load locations. Please try again later.");
         }
+
+
+
+        //try
+        //{
+        //    var response = await Http.GetFromJsonAsync<ApiResponse<List<Screen>>>("/api/screens");
+        //    if (response?.Success == true)
+        //    {
+        //        screens = response.Data;
+        //    }
+        //}
+        //catch (Exception ex)
+        //{
+        //    Console.WriteLine($"Error loading screens: {ex}");
+        //}
     }
 
     private async Task LoadLocations()
@@ -265,9 +297,9 @@
         }
     }
 
-    private void ShowModal(Screen? screen = null)
+    private void ShowModal(ScreenDto? screen = null)
     {
-        editingScreen = screen != null ? new Screen
+        editingScreen = screen != null ? new ScreenDto
         {
             Id = screen.Id,
             Name = screen.Name,
@@ -276,7 +308,7 @@
             DepartmentId = screen.DepartmentId,
             ScreenType = screen.ScreenType,
             MACAddress = screen.MACAddress
-        } : new Screen();
+        } : new ScreenDto();
 
         if (screen?.LocationId != null)
         {
@@ -288,7 +320,7 @@
                 .Where(d => d.LocationId == screen.LocationId && d.AgencyId == screen.AgencyId)
                 .ToList() ?? new List<Department>();
         }
-        
+
         showModal = true;
     }
 
@@ -329,7 +361,7 @@
     private async Task DeleteScreen(int id)
     {
         if (JSRuntime is null) return;
-        
+
         var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "Are you sure you want to delete this screen?" });
         if (!confirmed) return;
 

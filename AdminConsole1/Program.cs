@@ -18,9 +18,9 @@ builder.Services.Configure<ApiSettings>(
 builder.Services.AddScoped(sp =>
 {
     var apiSettings = sp.GetRequiredService<IOptions<ApiSettings>>();
-    Console.WriteLine($"Base URL: {apiSettings.Value.BaseUrl}");
+    //Console.WriteLine($"Base URL: {apiSettings.Value.BaseUrl}");
     var httpClient = new HttpClient { BaseAddress = new Uri(apiSettings.Value.BaseUrl) };
-
+    
     return httpClient;
 });
 
@@ -36,6 +36,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, MockAuthenticationStateP
 
 // Register ApiService
 builder.Services.AddScoped<ApiService>();
+//builder.Services.AddScoped<TokenService>();
 
 var app = builder.Build();
 

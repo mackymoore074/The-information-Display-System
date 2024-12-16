@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace ClassLibrary.Models
@@ -14,8 +15,10 @@ namespace ClassLibrary.Models
 
         [Required]
         [StringLength(50)]
+        [JsonPropertyName("name")]
         public string Name { get; set; } // Unique screen name (e.g., "DM001", "LH003")
 
+        [JsonPropertyName("locationId")]
         public int LocationId { get; set; } // Foreign key to Location
         public Location Location { get; set; } // Navigation property
 

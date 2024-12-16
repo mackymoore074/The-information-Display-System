@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ClassLibrary.DtoModels.Admin;
+using ClassLibrary;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Admin;
 using ClassLibrary.Models;

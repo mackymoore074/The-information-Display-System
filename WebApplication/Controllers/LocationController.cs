@@ -1,12 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using SystemModels.Models;
-using SystemModels;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Location;
 using ClassLibrary.Models;
@@ -28,7 +22,7 @@ namespace TheWebApplication.Controllers
             _logger = logger;
         }
 
-        [HttpGet("get-location")]
+        [HttpGet("get-locations")]
         public async Task<ActionResult<IEnumerable<LocationDto>>> GetLocations()
         {
             try

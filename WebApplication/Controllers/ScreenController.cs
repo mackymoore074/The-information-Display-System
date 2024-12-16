@@ -1,14 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using SystemModels.Models;
-using SystemModels;
-using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.Models;
+using System.Text.Encodings.Web;
 
 namespace TheWebApplication.Controllers
 {
@@ -26,7 +19,7 @@ namespace TheWebApplication.Controllers
         }
 
         // GET: api/screen
-        [HttpGet]
+        [HttpGet("get-screens")]
         public async Task<ActionResult<IEnumerable<ScreenDto>>> GetScreens()
         {
             try
@@ -46,7 +39,11 @@ namespace TheWebApplication.Controllers
                         LastCheckedIn = s.LastCheckedIn,
                         IsOnline = s.IsOnline,
                         StatusMessage = s.StatusMessage,
-                        MACAddress = s.MACAddress
+                        MACAddress = s.MACAddress,
+                        Location=s.Location,
+                        Department=s.Department,
+                        Agency=s.Agency,
+                        DepartmentId=s.DepartmentId
                     })
                     .ToListAsync();
 
@@ -73,6 +70,7 @@ namespace TheWebApplication.Controllers
                 if (screen == null)
                     return NotFound($"Screen with ID {id} not found.");
 
+                
                 var screenDto = new ScreenDto
                 {
                     Id = screen.Id,

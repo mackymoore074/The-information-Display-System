@@ -4,9 +4,14 @@ namespace ClassLibrary.Models
 {
     public class ClassDBContext : DbContext
     {
+
         public ClassDBContext(DbContextOptions<ClassDBContext> options)
             : base(options)
         {
+        }
+        public ClassDBContext()
+        {
+
         }
         public DbSet<Screen> Screens { get; set; }
         public DbSet<Department> Departments { get; set; }

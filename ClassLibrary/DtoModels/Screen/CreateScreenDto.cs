@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace SystemModels.Models
+namespace ClassLibrary.Models
 {
     public class CreateScreenDto
     {

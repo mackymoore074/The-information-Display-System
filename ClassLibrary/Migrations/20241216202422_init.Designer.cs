@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClassLibrary.Migrations
 {
     [DbContext(typeof(ClassDBContext))]
-    [Migration("20241216181727_Create")]
-    partial class Create
+    [Migration("20241216202422_init")]
+    partial class init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -85,12 +85,12 @@ namespace ClassLibrary.Migrations
                         new
                         {
                             Id = 1,
-                            DateCreated = new DateTime(2024, 12, 16, 18, 17, 27, 340, DateTimeKind.Utc).AddTicks(1136),
+                            DateCreated = new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3731),
                             Email = "admin@company.com",
                             FirstName = "John",
-                            LastLogin = new DateTime(2024, 12, 16, 18, 17, 27, 340, DateTimeKind.Utc).AddTicks(1144),
+                            LastLogin = new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3737),
                             LastName = "Doe",
-                            PasswordHash = "$2a$11$zCWBGRA2OPDCXSvsbcinIeNhABHEA9U8fp0zq1KEXulH6hDtXEHPi",
+                            PasswordHash = "$2a$11$vEOnG41t3HF0SoGktYLQjO3PsMl9vUnf1d4gn.R1qI5BDAPN3UUzO",
                             Role = 2
                         });
                 });

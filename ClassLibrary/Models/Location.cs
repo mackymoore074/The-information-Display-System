@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using SystemModels.Models;
 
 namespace ClassLibrary.Models
 
@@ -15,6 +15,7 @@ namespace ClassLibrary.Models
 
         [Required]
         [StringLength(200)]
+        [JsonPropertyName("name")]
         public string Name { get; set; } // Location name (e.g., "Foothill (Finance)")
 
         [Required]

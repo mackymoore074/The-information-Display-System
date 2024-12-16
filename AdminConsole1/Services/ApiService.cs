@@ -22,7 +22,7 @@ public class ApiService
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            var response = await _httpClient.GetAsync("https://localhost:7187");
+            var response = await _httpClient.GetAsync("https://localhost:7137");
 
             if (response.IsSuccessStatusCode)
             {
