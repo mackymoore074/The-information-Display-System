@@ -1,14 +1,10 @@
-﻿using ClassLibrary.Models;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using static SystemModels.Models.Screen;
+﻿using Microsoft.EntityFrameworkCore;
 
-namespace SystemModels.Models
+namespace ClassLibrary.Models
 {
-    public class InfoDbContext : DbContext
+    public class ClassDBContext : DbContext
     {
-        public InfoDbContext(DbContextOptions<InfoDbContext> options)
+        public ClassDBContext(DbContextOptions<ClassDBContext> options)
             : base(options)
         {
         }
