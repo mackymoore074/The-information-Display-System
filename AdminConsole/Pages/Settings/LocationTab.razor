@@ -1,8 +1,14 @@
+@page "/locations"
+@using AdminConsole.IService
+@using AdminConsole.Services
+@using ClassLibrary.DtoModels.Common
+@using ClassLibrary.DtoModels.Location
 @using ClassLibrary.Models
 @using Microsoft.Extensions.Options
 @inject HttpClient Http
 @inject IOptions<ApiSettings> ApiSettings
 @inject IJSRuntime JSRuntime
+@inject ILocationService LocationService
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>Location/Campus Setup</h4>
@@ -83,9 +89,9 @@
 }
 
 @code {
-    private List<Location> locations = new();
+    private List<LocationDto> locations = new();
     private bool showModal;
-    private Location editingLocation = new();
+    private LocationDto editingLocation = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,8 +102,8 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Location>>>("/api/locations");
-            if (response?.Success == true)
+            var response = await LocationService.GetLocationsAsync();
+            if (response.Success)
             {
                 locations = response.Data ?? new();
             }
@@ -108,14 +114,14 @@
         }
     }
 
-    private void ShowModal(Location? location = null)
+    private void ShowModal(LocationDto? location = null)
     {
-        editingLocation = location != null ? new Location
-        {
-            Id = location.Id,
-            Name = location.Name,
-            Address = location.Address
-        } : new Location();
+        editingLocation = location != null ? new LocationDto
+            {
+                Id = location.Id,
+                Name = location.Name,
+                Address = location.Address
+            } : new LocationDto();
         showModal = true;
     }
 
@@ -132,8 +138,8 @@
 
         try
         {
-            var response = await Http.DeleteAsync($"/api/locations/{id}");
-            if (response.IsSuccessStatusCode)
+            var response = await LocationService.DeleteLocationAsync(id);
+            if (response.Success)
             {
                 await LoadLocations();
             }
@@ -148,25 +154,45 @@
     {
         try
         {
-            HttpResponseMessage response;
+            ApiResponse<LocationDto> response;
+
             if (editingLocation.Id == 0)
             {
-                response = await Http.PostAsJsonAsync("/api/locations", editingLocation);
+                // Create a new location
+                var createLocationDto = new CreateLocationDto
+                    {
+                        Name = editingLocation.Name,
+                        Address = editingLocation.Address
+                    };
+
+                response = await LocationService.CreateLocationAsync(createLocationDto);
             }
             else
             {
-                response = await Http.PutAsJsonAsync($"/api/locations/{editingLocation.Id}", editingLocation);
+                // Update an existing location
+                var updateLocationDto = new UpdateLocationDto
+                    {
+                        Name = editingLocation.Name,
+                        Address = editingLocation.Address
+                    };
+
+                response = await LocationService.UpdateLocationAsync(editingLocation.Id, updateLocationDto);
             }
 
-            if (response.IsSuccessStatusCode)
+            if (response.Success)
             {
                 await LoadLocations();
                 HideModal();
             }
+            else
+            {
+                Console.WriteLine($"Error: {response.Message}");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving location: {ex}");
+            Console.WriteLine($"Error saving location: {ex.Message}");
         }
     }
-} 
+
+}

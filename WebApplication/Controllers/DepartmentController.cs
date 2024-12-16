@@ -1,328 +1,223 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using ClassLibrary;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using SystemModels.Models;
+using SystemModels.DtoModels.Employee;
+using Microsoft.AspNetCore.Authorization;
+using ClassLibrary.DtoModels.Employee;
 using ClassLibrary.Models;
-using ClassLibrary.DtoModels.Department;
-using ClassLibrary.DtoModels.Admin;
-using ClassLibrary.DtoModels.Common;
-
-
 
 namespace TheWebApplication.Controllers
 {
     [ApiController]
-    [Authorize]
     [Route("api/[controller]")]
-    public class DepartmentController : ControllerBase
+    [Authorize]
+    public class EmployeeController : ControllerBase
     {
-        private readonly ClassDBContext _context;
-        private readonly ILogger<DepartmentController> _logger;
+        private readonly InfoDbContext _context;
+        private readonly ILogger<EmployeeController> _logger;
 
-        public DepartmentController(ClassDBContext context, ILogger<DepartmentController> logger)
+        public EmployeeController(InfoDbContext context, ILogger<EmployeeController> logger)
         {
             _context = context;
             _logger = logger;
         }
 
+        // GET: api/employee
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<DepartmentDto>>>> GetDepartments()
+        public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetEmployees()
         {
             try
             {
-                var departments = await _context.Departments
-                    .Include(d => d.Agency)
-                    .Include(d => d.Location)
-                    .Select(d => new DepartmentDto
+                var employees = await _context.Employees
+                    .Select(e => new EmployeeDto
                     {
-                        Id = d.Id,
-                        Name = d.Name,
-                        Description = d.Description,
-                        DateCreated = d.DateCreated,
-                        AgencyId = d.AgencyId,
-                        AgencyName = d.Agency != null ? d.Agency.Name : null,
-                        LocationId = d.LocationId,
-                        LocationName = d.Location.Name
+                        Id = e.Id,
+                        FirstName = e.FirstName,
+                        LastName = e.LastName,
+                        Email = e.Email,
+                        DateCreated = e.DateCreated,
+                        AdminId = e.AdminId,
+                        DepartmentId = e.DepartmentId
                     })
                     .ToListAsync();
 
-                return Ok(new ApiResponse<IEnumerable<DepartmentDto>>
-                {
-                    Success = true,
-                    Message = "Departments retrieved successfully",
-                    Data = departments
-                });
+                return Ok(employees);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in GetDepartments: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<IEnumerable<DepartmentDto>>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                await LogErrorToDatabaseAsync("Error in GetEmployees", ex);
+                return StatusCode(500, "Internal server error.");
             }
         }
 
+        // GET: api/employee/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<DepartmentDto>>> GetDepartment(int id)
+        public async Task<ActionResult<EmployeeDto>> GetEmployee(int id)
         {
             try
             {
-                var department = await _context.Departments
-                    .Include(d => d.Agency)
-                    .Include(d => d.Location)
-                    .FirstOrDefaultAsync(d => d.Id == id);
+                var employee = await _context.Employees
+                    .Where(e => e.Id == id)
+                    .FirstOrDefaultAsync();
 
-                if (department == null)
-                {
-                    return NotFound(new ApiResponse<DepartmentDto>
-                    {
-                        Success = false,
-                        Message = "Department not found",
-                        Errors = new List<string> { $"Department with ID {id} not found" }
-                    });
-                }
+                if (employee == null)
+                    return NotFound($"Employee with ID {id} not found.");
 
-                var departmentDto = new DepartmentDto
+                var employeeDto = new EmployeeDto
                 {
-                    Id = department.Id,
-                    Name = department.Name,
-                    Description = department.Description,
-                    DateCreated = department.DateCreated,
-                    AgencyId = department.AgencyId,
-                    AgencyName = department.Agency?.Name,
-                    LocationId = department.LocationId,
-                    LocationName = department.Location.Name
+                    Id = employee.Id,
+                    FirstName = employee.FirstName,
+                    LastName = employee.LastName,
+                    Email = employee.Email,
+                    DateCreated = employee.DateCreated,
+                    AdminId = employee.AdminId,
+                    DepartmentId = employee.DepartmentId
                 };
 
-                return Ok(new ApiResponse<DepartmentDto>
-                {
-                    Success = true,
-                    Message = "Department retrieved successfully",
-                    Data = departmentDto
-                });
+                return Ok(employeeDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in GetDepartment: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<DepartmentDto>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                await LogErrorToDatabaseAsync("Error in GetEmployee", ex);
+                return StatusCode(500, "Internal server error.");
             }
         }
 
+        // POST: api/employee
         [HttpPost]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<ActionResult<ApiResponse<DepartmentDto>>> CreateDepartment([FromBody] CreateDepartmentDto createDepartmentDto)
+        public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] CreateEmployeeDto createEmployeeDto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse<DepartmentDto>
-                {
-                    Success = false,
-                    Message = "Validation failed",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
-                });
-            }
+                return BadRequest(ModelState);
 
             try
             {
-                // Validate LocationId exists
-                var location = await _context.Locations.FindAsync(createDepartmentDto.LocationId);
-                if (location == null)
+                var employee = new Employee
                 {
-                    return BadRequest(new ApiResponse<DepartmentDto>
-                    {
-                        Success = false,
-                        Message = "Validation failed",
-                        Errors = new List<string> { $"Location with ID {createDepartmentDto.LocationId} not found" }
-                    });
-                }
+                    FirstName = createEmployeeDto.FirstName,
+                    LastName = createEmployeeDto.LastName,
+                    Email = createEmployeeDto.Email,
+                    AdminId = createEmployeeDto.AdminId,
+                    DepartmentId = createEmployeeDto.DepartmentId,
+                    DateCreated = DateTime.UtcNow // Set the current date and time
+                };
 
-                // Validate AgencyId exists if provided
-                if (createDepartmentDto.AgencyId.HasValue)
-                {
-                    var agency = await _context.Agencies.FindAsync(createDepartmentDto.AgencyId.Value);
-                    if (agency == null)
-                    {
-                        return BadRequest(new ApiResponse<DepartmentDto>
-                        {
-                            Success = false,
-                            Message = "Validation failed",
-                            Errors = new List<string> { $"Agency with ID {createDepartmentDto.AgencyId} not found" }
-                        });
-                    }
-                }
+                // Assign departments
 
-                var department = new Department
+
+                _context.Employees.Add(employee);
+                await _context.SaveChangesAsync();
+
+                var employeeDto = new EmployeeDto
                 {
-                    Name = createDepartmentDto.Name,
-                    Description = createDepartmentDto.Description,
-                    AgencyId = createDepartmentDto.AgencyId,
-                    LocationId = createDepartmentDto.LocationId,
+                    Id = employee.Id,
+                    FirstName = employee.FirstName,
+                    LastName = employee.LastName,
+                    Email = employee.Email,
+                    DateCreated = employee.DateCreated,
+                    AdminId = employee.AdminId,
+                    DepartmentId = employee.DepartmentId
+                };
+
+                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employeeDto);
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error in CreateEmployee", ex);
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        // PUT: api/employee/{id}
+        [HttpPut("{id}")]
+        public async Task<ActionResult<EmployeeDto>> UpdateEmployee(int id, [FromBody] UpdateEmployeeDto updateEmployeeDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var employee = await _context.Employees.FindAsync(id);
+                if (employee == null)
+                    return NotFound($"Employee with ID {id} not found.");
+
+                employee.FirstName = updateEmployeeDto.FirstName;
+                employee.LastName = updateEmployeeDto.LastName;
+                employee.Email = updateEmployeeDto.Email;
+                employee.DepartmentId = updateEmployeeDto.DepartmentId;
+
+                // You can update other fields similarly if needed, but I assume Email, AdminId, and DepartmentId are not meant to be updated
+
+                _context.Employees.Update(employee);
+                await _context.SaveChangesAsync();
+
+                var employeeDto = new EmployeeDto
+                {
+                    Id = employee.Id,
+                    FirstName = employee.FirstName,
+                    LastName = employee.LastName,
+                    Email = employee.Email,
+                    DepartmentId = employee.DepartmentId
+                };
+
+                return Ok(employeeDto);
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error in UpdateEmployee", ex);
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+
+
+        // DELETE: api/employee/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteEmployee(int id)
+        {
+            try
+            {
+                var employee = await _context.Employees.FindAsync(id);
+                if (employee == null)
+                    return NotFound($"Employee with ID {id} not found.");
+
+                _context.Employees.Remove(employee);
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error in DeleteEmployee", ex);
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        // Helper method to log errors to the database
+        private async Task LogErrorToDatabaseAsync(string context, Exception ex)
+        {
+            _logger.LogError($"{context}: {ex.Message}", ex);
+
+            try
+            {
+                var errorLog = new ErrorLog
+                {
+                    ErrorMessage = ex.Message,
                     DateCreated = DateTime.UtcNow
                 };
 
-                _context.Departments.Add(department);
+                _context.ErrorLogs.Add(errorLog);
                 await _context.SaveChangesAsync();
-
-                // Load related entities after save
-                await _context.Entry(department)
-                    .Reference(d => d.Location)
-                    .LoadAsync();
-
-                if (department.AgencyId.HasValue)
-                {
-                    await _context.Entry(department)
-                        .Reference(d => d.Agency)
-                        .LoadAsync();
-                }
-
-                var departmentDto = new DepartmentDto
-                {
-                    Id = department.Id,
-                    Name = department.Name,
-                    Description = department.Description,
-                    DateCreated = department.DateCreated,
-                    AgencyId = department.AgencyId,
-                    AgencyName = department.Agency?.Name,
-                    LocationId = department.LocationId,
-                    LocationName = department.Location.Name
-                };
-
-                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id },
-                    new ApiResponse<DepartmentDto>
-                    {
-                        Success = true,
-                        Message = "Department created successfully",
-                        Data = departmentDto
-                    });
             }
-            catch (Exception ex)
+            catch (Exception logEx)
             {
-                _logger.LogError($"Error in CreateDepartment: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<DepartmentDto>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
-            }
-        }
-
-        [HttpPut("{id}")]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<ActionResult<ApiResponse<DepartmentDto>>> UpdateDepartment(int id, [FromBody] UpdateDepartmentDto updateDepartmentDto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse<DepartmentDto>
-                {
-                    Success = false,
-                    Message = "Validation failed",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
-                });
-            }
-
-            try
-            {
-                var department = await _context.Departments.FindAsync(id);
-                if (department == null)
-                {
-                    return NotFound(new ApiResponse<DepartmentDto>
-                    {
-                        Success = false,
-                        Message = "Department not found",
-                        Errors = new List<string> { $"Department with ID {id} not found" }
-                    });
-                }
-
-                department.Name = updateDepartmentDto.Name;
-                department.Description = updateDepartmentDto.Description;
-                department.AgencyId = updateDepartmentDto.AgencyId;
-                department.LocationId = updateDepartmentDto.LocationId;
-
-                await _context.SaveChangesAsync();
-
-                await _context.Entry(department)
-                    .Reference(d => d.Agency)
-                    .LoadAsync();
-                await _context.Entry(department)
-                    .Reference(d => d.Location)
-                    .LoadAsync();
-
-                var departmentDto = new DepartmentDto
-                {
-                    Id = department.Id,
-                    Name = department.Name,
-                    Description = department.Description,
-                    DateCreated = department.DateCreated,
-                    AgencyId = department.AgencyId,
-                    AgencyName = department.Agency?.Name,
-                    LocationId = department.LocationId,
-                    LocationName = department.Location.Name
-                };
-
-                return Ok(new ApiResponse<DepartmentDto>
-                {
-                    Success = true,
-                    Message = "Department updated successfully",
-                    Data = departmentDto
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error in UpdateDepartment: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<DepartmentDto>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
-            }
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<ActionResult<ApiResponse<object>>> DeleteDepartment(int id)
-        {
-            try
-            {
-                var department = await _context.Departments.FindAsync(id);
-                if (department == null)
-                {
-                    return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Department not found",
-                        Errors = new List<string> { $"Department with ID {id} not found" }
-                    });
-                }
-
-                _context.Departments.Remove(department);
-                await _context.SaveChangesAsync();
-
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Department deleted successfully"
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error in DeleteDepartment: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                _logger.LogError($"Failed to log error to database: {logEx.Message}", logEx);
             }
         }
     }
-} 
+}

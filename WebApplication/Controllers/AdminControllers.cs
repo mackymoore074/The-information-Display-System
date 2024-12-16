@@ -6,9 +6,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ClassLibrary;
-using ClassLibrary.Models;
+using SystemModels.Models;
+using SystemModels.DtoModels.Admin;
+using SystemModels;
+using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Admin;
+using ClassLibrary.Models;
 
 namespace TheWebApplication.Controllers
 {
@@ -16,11 +19,11 @@ namespace TheWebApplication.Controllers
     [Route("api/[controller]")]
     public class AdminController : ControllerBase
     {
-        private readonly ClassDBContext _context;
+        private readonly InfoDbContext _context;
         private readonly ILogger<AdminController> _logger;
         private readonly IPasswordHasher<Admin> _passwordHasher;
 
-        public AdminController(ClassDBContext context, ILogger<AdminController> logger, IPasswordHasher<Admin> passwordHasher)
+        public AdminController(InfoDbContext context, ILogger<AdminController> logger, IPasswordHasher<Admin> passwordHasher)
         {
             _context = context;
             _logger = logger;
@@ -35,10 +38,9 @@ namespace TheWebApplication.Controllers
             {
                 var admins = await _context.Admins
                     .Include(a => a.Agency)
-                    .Include(a => a.AdminDepartmentLocations)
-                        .ThenInclude(adl => adl.Department)
-                    .Include(a => a.AdminDepartmentLocations)
-                        .ThenInclude(adl => adl.Location)
+                    .Include(a => a.Department)
+                    .Include(a => a.Location)
+                    .Include(a => a.Screen)
                     .Select(a => new AdminDto
                     {
                         Id = a.Id,
@@ -46,13 +48,10 @@ namespace TheWebApplication.Controllers
                         LastName = a.LastName,
                         Email = a.Email,
                         Role = a.Role.ToString(),
-                        AgencyName = a.Agency != null ? a.Agency.Name : null,
-                        DepartmentName = a.AdminDepartmentLocations.Any() 
-                            ? a.AdminDepartmentLocations.First().Department.Name 
-                            : null,
-                        LocationName = a.AdminDepartmentLocations.Any() 
-                            ? a.AdminDepartmentLocations.First().Location.Name 
-                            : null,
+                        AgencyName = a.Agency.Name,
+                        DepartmentName = a.Department.Name,
+                        LocationName = a.Location.Name,
+                        ScreenName = a.Screen.Name,
                         DateCreated = a.DateCreated,
                         LastLogin = a.LastLogin
                     })
@@ -69,16 +68,16 @@ namespace TheWebApplication.Controllers
 
         // GET: api/admin/{id}
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<AdminDto>> GetAdmin(int id)
         {
             try
             {
                 var admin = await _context.Admins
                     .Include(a => a.Agency)
-                    .Include(a => a.AdminDepartmentLocations)
-                        .ThenInclude(adl => adl.Department)
-                    .Include(a => a.AdminDepartmentLocations)
-                        .ThenInclude(adl => adl.Location)
+                    .Include(a => a.Department)
+                    .Include(a => a.Location)
+                    .Include(a => a.Screen)
                     .Where(a => a.Id == id)
                     .Select(a => new AdminDto
                     {
@@ -87,13 +86,6 @@ namespace TheWebApplication.Controllers
                         LastName = a.LastName,
                         Email = a.Email,
                         Role = a.Role.ToString(),
-                        AgencyName = a.Agency != null ? a.Agency.Name : null,
-                        DepartmentName = a.AdminDepartmentLocations.Any() 
-                            ? a.AdminDepartmentLocations.First().Department.Name 
-                            : null,
-                        LocationName = a.AdminDepartmentLocations.Any() 
-                            ? a.AdminDepartmentLocations.First().Location.Name 
-                            : null,
                         DateCreated = a.DateCreated,
                         LastLogin = a.LastLogin
                     })
@@ -113,6 +105,7 @@ namespace TheWebApplication.Controllers
 
         // POST: api/admin
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<AdminDto>> CreateAdmin([FromBody] CreateAdminDto createAdminDto)
         {
             if (!ModelState.IsValid)
@@ -156,6 +149,7 @@ namespace TheWebApplication.Controllers
 
         // PUT: api/admin/{id}
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<ActionResult<AdminDto>> UpdateAdmin(int id, [FromBody] UpdateAdminDto updateAdminDto)
         {
             if (!ModelState.IsValid)
@@ -202,6 +196,7 @@ namespace TheWebApplication.Controllers
 
         // DELETE: api/admin/{id}
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteAdmin(int id) //
         {
             try

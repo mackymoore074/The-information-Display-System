@@ -1,0 +1,67 @@
+@page "/settings"
+@using AdminConsole.Pages.Settings
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<h3>System Settings</h3>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "location" ? "active" : "")" 
+                        @onclick='() => SetActiveTab("location")'>
+                    Location/Campus
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "agency" ? "active" : "")" 
+                        @onclick='() => SetActiveTab("agency")'>
+                    Agency
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "department" ? "active" : "")" 
+                        @onclick='() => SetActiveTab("department")'>
+                    Department
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link @(activeTab == "screen" ? "active" : "")" 
+                        @onclick='() => SetActiveTab("screen")'>
+                    Screen
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-4" id="settingsTabContent">
+            @switch (activeTab)
+            {
+                case "location":
+                    <LocationTab />
+                    break;
+
+                case "agency":
+                    <AgencyTab />
+                    break;
+
+                case "department":
+                    <DepartmentTab />
+                    break;
+
+                case "screen":
+                    <ScreenTab />
+                    break;
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string activeTab = "location";
+
+    private void SetActiveTab(string tabName)
+    {
+        activeTab = tabName;
+    }
+} 

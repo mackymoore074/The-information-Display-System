@@ -1,22 +1,26 @@
-﻿using ClassLibrary;
-using ClassLibrary.DtoModels.NewsItem;
-using ClassLibrary.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using SystemModels;
+using SystemModels.Models;
+using SystemModels.DtoModels.NewsItem;
+using Microsoft.AspNetCore.Authorization;
+using ClassLibrary.DtoModels.NewsItem;
+using ClassLibrary.Models;
 
 namespace TheWebApplication.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class NewsItemController : ControllerBase
     {
-        private readonly ClassDBContext _context;
+        private readonly InfoDbContext _context;
 
-        public NewsItemController(ClassDBContext context)
+        public NewsItemController(InfoDbContext context)
         {
             _context = context;
         }

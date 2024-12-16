@@ -1,139 +1,113 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using ClassLibrary;
-using ClassLibrary.Models;
-using ClassLibrary.DtoModels.Common;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using SystemModels.Models;
+using SystemModels.DtoModels.Agency;
+using SystemModels;
 using ClassLibrary.DtoModels.Agency;
+using ClassLibrary.Models;
 
 namespace TheWebApplication.Controllers
 {
-    [ApiController]
-    [Authorize]
     [Route("api/[controller]")]
+    [ApiController]
     public class AgencyController : ControllerBase
     {
-        private readonly ClassDBContext _context;
+        private readonly InfoDbContext _context;
         private readonly ILogger<AgencyController> _logger;
 
-        public AgencyController(ClassDBContext context, ILogger<AgencyController> logger)
+        public AgencyController(InfoDbContext context, ILogger<AgencyController> logger)
         {
             _context = context;
             _logger = logger;
         }
 
+        // GET: api/agency
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<AgencyDto>>>> GetAgencies()
+        public async Task<ActionResult<IEnumerable<AgencyDto>>> GetAgencies()
         {
             try
             {
                 var agencies = await _context.Agencies
-                    .Include(a => a.Location)
                     .Select(a => new AgencyDto
                     {
                         Id = a.Id,
                         Name = a.Name,
                         Description = a.Description,
-                        LocationId = a.LocationId,
-                        LocationName = a.Location.Name,
-                        DateCreated = a.DateCreated
+                        AdminId = a.AdminId,
+                        LocationId = a.LocationId
                     })
                     .ToListAsync();
 
-                return Ok(new ApiResponse<IEnumerable<AgencyDto>>
-                {
-                    Success = true,
-                    Message = "Agencies retrieved successfully",
-                    Data = agencies
-                });
+                return Ok(agencies);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in GetAgencies: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<IEnumerable<AgencyDto>>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                await LogErrorToDatabaseAsync("Error in GetAgencies", ex);
+                return StatusCode(500, "Internal server error.");
             }
         }
 
+        // GET: api/agency/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<AgencyDto>>> GetAgency(int id)
+        public async Task<ActionResult<AgencyDto>> GetAgency(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             try
             {
                 var agency = await _context.Agencies
-                    .Include(a => a.Location)
                     .FirstOrDefaultAsync(a => a.Id == id);
 
                 if (agency == null)
-                    return NotFound(new ApiResponse<AgencyDto>
-                    {
-                        Success = false,
-                        Message = "Agency not found",
-                        Errors = new List<string> { $"Agency with ID {id} not found" }
-                    });
+                {
+                    return NotFound($"Agency with ID {id} not found.");
+                }
 
                 var agencyDto = new AgencyDto
                 {
                     Id = agency.Id,
                     Name = agency.Name,
                     Description = agency.Description,
-                    LocationId = agency.LocationId,
-                    LocationName = agency.Location.Name,
-                    DateCreated = agency.DateCreated
+                    AdminId = agency.AdminId,
+                    LocationId = agency.LocationId
                 };
 
-                return Ok(new ApiResponse<AgencyDto>
-                {
-                    Success = true,
-                    Message = "Agency retrieved successfully",
-                    Data = agencyDto
-                });
+                return Ok(agencyDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in GetAgency: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<AgencyDto>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                await LogErrorToDatabaseAsync("Error in GetAgency", ex);
+                return StatusCode(500, "Internal server error.");
             }
         }
 
+        // POST: api/agency
         [HttpPost]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<ActionResult<ApiResponse<AgencyDto>>> CreateAgency([FromBody] CreateAgencyDto createAgencyDto)
+        public async Task<ActionResult<AgencyDto>> CreateAgency([FromBody] CreateAgencyDto createAgencyDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new ApiResponse<AgencyDto>
-                {
-                    Success = false,
-                    Message = "Validation failed",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
-                });
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                               .Select(e => e.ErrorMessage)
+                                               .ToList();
+                return BadRequest(errors);
+            }
 
             try
             {
-                // Validate location exists
-                var location = await _context.Locations.FindAsync(createAgencyDto.LocationId);
-                if (location == null)
-                    return BadRequest(new ApiResponse<AgencyDto>
-                    {
-                        Success = false,
-                        Message = "Invalid location",
-                        Errors = new List<string> { $"Location with ID {createAgencyDto.LocationId} not found" }
-                    });
-
                 var agency = new Agency
                 {
                     Name = createAgencyDto.Name,
                     Description = createAgencyDto.Description,
+                    AdminId = createAgencyDto.AdminId,
                     LocationId = createAgencyDto.LocationId,
                     DateCreated = DateTime.UtcNow
                 };
@@ -141,149 +115,108 @@ namespace TheWebApplication.Controllers
                 _context.Agencies.Add(agency);
                 await _context.SaveChangesAsync();
 
-                // Reload to get location name
-                await _context.Entry(agency).Reference(a => a.Location).LoadAsync();
-
                 var agencyDto = new AgencyDto
                 {
                     Id = agency.Id,
                     Name = agency.Name,
                     Description = agency.Description,
-                    LocationId = agency.LocationId,
-                    LocationName = agency.Location.Name,
-                    DateCreated = agency.DateCreated
+                    AdminId = agency.AdminId,
+                    LocationId = agency.LocationId
                 };
 
-                return CreatedAtAction(nameof(GetAgency), new { id = agency.Id },
-                    new ApiResponse<AgencyDto>
-                    {
-                        Success = true,
-                        Message = "Agency created successfully",
-                        Data = agencyDto
-                    });
+                return CreatedAtAction(nameof(GetAgency), new { id = agency.Id }, agencyDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in CreateAgency: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<AgencyDto>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                await LogErrorToDatabaseAsync("Error in CreateAgency", ex);
+                return StatusCode(500, "Internal server error.");
             }
         }
 
+        // PUT: api/agency/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<ActionResult<ApiResponse<AgencyDto>>> UpdateAgency(int id, [FromBody] UpdateAgencyDto updateAgencyDto)
+        public async Task<IActionResult> UpdateAgency(int id, [FromBody] UpdateAgencyDto updateAgencyDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(new ApiResponse<AgencyDto>
-                {
-                    Success = false,
-                    Message = "Validation failed",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)).ToList()
-                });
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
-                var agency = await _context.Agencies
-                    .Include(a => a.Location)
-                    .FirstOrDefaultAsync(a => a.Id == id);
-
+                var agency = await _context.Agencies.FindAsync(id);
                 if (agency == null)
-                    return NotFound(new ApiResponse<AgencyDto>
-                    {
-                        Success = false,
-                        Message = "Agency not found",
-                        Errors = new List<string> { $"Agency with ID {id} not found" }
-                    });
-
-                // Validate new location if it's changing
-                if (agency.LocationId != updateAgencyDto.LocationId)
                 {
-                    var location = await _context.Locations.FindAsync(updateAgencyDto.LocationId);
-                    if (location == null)
-                        return BadRequest(new ApiResponse<AgencyDto>
-                        {
-                            Success = false,
-                            Message = "Invalid location",
-                            Errors = new List<string> { $"Location with ID {updateAgencyDto.LocationId} not found" }
-                        });
-                    agency.LocationId = updateAgencyDto.LocationId;
+                    return NotFound($"Agency with ID {id} not found.");
                 }
 
                 agency.Name = updateAgencyDto.Name;
                 agency.Description = updateAgencyDto.Description;
 
+                _context.Entry(agency).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
-
-                // Reload to get updated location name
-                await _context.Entry(agency).Reference(a => a.Location).LoadAsync();
 
                 var agencyDto = new AgencyDto
                 {
                     Id = agency.Id,
                     Name = agency.Name,
                     Description = agency.Description,
-                    LocationId = agency.LocationId,
-                    LocationName = agency.Location.Name,
-                    DateCreated = agency.DateCreated
+                    AdminId = agency.AdminId,
+                    LocationId = agency.LocationId
                 };
 
-                return Ok(new ApiResponse<AgencyDto>
-                {
-                    Success = true,
-                    Message = "Agency updated successfully",
-                    Data = agencyDto
-                });
+                return Ok(agencyDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in UpdateAgency: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<AgencyDto>
-                {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                await LogErrorToDatabaseAsync("Error in UpdateAgency", ex);
+                return StatusCode(500, "Internal server error.");
             }
         }
 
+        // DELETE: api/agency/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "SuperAdmin")]
-        public async Task<ActionResult<ApiResponse<object>>> DeleteAgency(int id)
+        public async Task<IActionResult> DeleteAgency(int id)
         {
             try
             {
                 var agency = await _context.Agencies.FindAsync(id);
                 if (agency == null)
-                    return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Agency not found",
-                        Errors = new List<string> { $"Agency with ID {id} not found" }
-                    });
+                {
+                    return NotFound($"Agency with ID {id} not found.");
+                }
 
                 _context.Agencies.Remove(agency);
                 await _context.SaveChangesAsync();
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Agency deleted successfully"
-                });
+                return NoContent();
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in DeleteAgency: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<object>
+                await LogErrorToDatabaseAsync("Error in DeleteAgency", ex);
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        // Helper method to log errors to the database
+        private async Task LogErrorToDatabaseAsync(string context, Exception ex)
+        {
+            _logger.LogError($"{context}: {ex.Message}", ex);
+
+            try
+            {
+                var errorLog = new ErrorLog
                 {
-                    Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
-                });
+                    ErrorMessage = ex.Message,
+                    DateCreated = DateTime.UtcNow
+                };
+
+                _context.ErrorLogs.Add(errorLog);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogError($"Failed to log error to database: {logEx.Message}", logEx);
             }
         }
     }

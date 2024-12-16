@@ -2,27 +2,23 @@
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static ClassLibrary.Models.NewsItem;
+using static SystemModels.Models.Screen;
 
-namespace ClassLibrary
+namespace SystemModels.Models
 {
-    public class ClassDBContext : DbContext
+    public class InfoDbContext : DbContext
     {
-        public ClassDBContext(DbContextOptions<ClassDBContext> options)
+        public InfoDbContext(DbContextOptions<InfoDbContext> options)
             : base(options)
         {
         }
-
-        public DbSet<Admin> Admins { get; set; }
-        public DbSet<Agency> Agencies { get; set; }
         public DbSet<Screen> Screens { get; set; }
         public DbSet<Department> Departments { get; set; }
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<Agency> Agencies { get; set; }
         public DbSet<Employee> Employees { get; set; }
         public DbSet<ErrorLog> ErrorLogs { get; set; }
-        public DbSet<Location> Locations { get; set; }
+        public DbSet<Admin> Admins { get; set; }
         public DbSet<MenuItems> MenuItems { get; set; }
         public DbSet<NewsItem> NewsItems { get; set; }
         public DbSet<NewsItemAgency> NewsItemAgencies { get; set; }
@@ -33,6 +29,21 @@ namespace ClassLibrary
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configure the one-to-one relationship between Admin and Location
+            modelBuilder.Entity<Admin>()
+                .HasOne(a => a.Location) // Admin has one Location
+                .WithOne(l => l.Admin)    // Location has one Admin
+                .HasForeignKey<Admin>(a => a.LocationId);
+            // Configure the one-to-one relationship between Admin and Screen
+            modelBuilder.Entity<Admin>()
+                .HasOne(a => a.Screen) // Admin has one Screen
+                .WithOne(s => s.Admin)  // Screen has one Admin
+                .HasForeignKey<Screen>(s => s.AdminId);
+
+            modelBuilder.Entity<Admin>()
+                  .HasOne(a => a.Agency)
+                      .WithOne(a => a.Admin)
+                      .HasForeignKey<Admin>(a => a.AgencyId);
             // Agency-Location relationship
             modelBuilder.Entity<Agency>()
                 .HasOne(a => a.Location)
@@ -60,11 +71,11 @@ namespace ClassLibrary
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Department configuration
+            // Configure Department ↔ Agency relationship
             modelBuilder.Entity<Department>()
                 .HasOne(d => d.Agency)
-                .WithMany()
+                .WithMany(a => a.Departments)
                 .HasForeignKey(d => d.AgencyId)
-                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Department>()
@@ -76,32 +87,76 @@ namespace ClassLibrary
 
             // Employee-Department relationship
             modelBuilder.Entity<Employee>()
-                .HasOne(e => e.Department)
-                .WithMany()
-                .HasForeignKey(e => e.DepartmentId)
+                 .HasOne(e => e.Departments)
+                 .WithMany(d => d.Employees)
+                 .HasForeignKey(e => e.DepartmentId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Agency>()
+                  .HasOne(a => a.Admin)
+                  .WithOne(ad => ad.Agency)
+                    .HasForeignKey<Agency>(a => a.AdminId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure MenuItems relationships
+            // MenuItems ↔ Agency
+            modelBuilder.Entity<MenuItems>()
+                .HasOne(m => m.Agency)
+                .WithMany(a => a.MenuItems)
+                .HasForeignKey(m => m.AgencyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Seed SuperAdmin
-            SuperAdminSeeder.SeedSuperAdmin(modelBuilder);
-        }
-    }
+            // MenuItems ↔ Admin
+            modelBuilder.Entity<MenuItems>()
+                .HasOne(m => m.Admin)
+                .WithMany(a => a.MenuItems)
+                .HasForeignKey(m => m.AdminId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-    public static class SuperAdminSeeder
-    {
-        public static void SeedSuperAdmin(ModelBuilder modelBuilder)
-        {
+            // Configure the NewsItem-Admin relationship
+            modelBuilder.Entity<NewsItem>()
+                .HasOne(n => n.Admin)
+                .WithMany(a => a.NewsItems)
+                .HasForeignKey(n => n.AdminId)
+                .OnDelete(DeleteBehavior.Restrict); // Avoid cascading delete
+
+            // Configure relationships between NewsItems and related entities
+            modelBuilder.Entity<NewsItem>()
+                .HasMany(n => n.NewsItemAgencies)
+                .WithOne(na => na.NewsItem)
+                .HasForeignKey(na => na.NewsItemId);
+
+            modelBuilder.Entity<NewsItem>()
+                .HasMany(n => n.NewsItemScreens)
+                .WithOne(ns => ns.NewsItem)
+                .HasForeignKey(ns => ns.NewsItemId);
+
+            modelBuilder.Entity<NewsItem>()
+                .HasMany(n => n.NewsItemDepartments)
+                .WithOne(nd => nd.NewsItem)
+                .HasForeignKey(nd => nd.NewsItemId);
+
+            modelBuilder.Entity<NewsItem>()
+                .HasMany(n => n.NewsItemLocations)
+                .WithOne(nl => nl.NewsItem)
+                .HasForeignKey(nl => nl.NewsItemId);
+
+            // Configure allowed IP addresses
+            modelBuilder.Entity<AllowedIpAddress>()
+                .HasKey(aip => aip.IpAddress);
+
+            // Hardcode the single Admin into the database
             modelBuilder.Entity<Admin>().HasData(
                 new Admin
                 {
                     Id = 1,
-                    FirstName = "Super",
-                    LastName = "Admin",
-                    Email = "superadmin@system.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123"),
-                    Role = Role.SuperAdmin,
+                    FirstName = "John",
+                    LastName = "Doe",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("adminpassword123"),  // Store the password hash, not plaintext
+                    Email = "admin@company.com",
                     DateCreated = DateTime.UtcNow,
                     LastLogin = DateTime.UtcNow,
-                    AgencyId = null
+                    Role = Role.Admin,  // Assuming 'Role.Admin' is an enum for admin role
                 }
             );
         }

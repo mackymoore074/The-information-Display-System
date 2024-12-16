@@ -1,13 +1,37 @@
 using AdminConsole.Data;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Authorization;
+using AdminConsole.Data.Authentication;
+using AdminConsole.Services;
+using Microsoft.Extensions.Options;
+using AdminConsole.IService;
+using TheWebApplication.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
+
+// Configure ApiSettings
+builder.Services.Configure<ApiSettings>(
+    builder.Configuration.GetSection("ApiSettings"));
+
+// Configure HttpClient with base address
+builder.Services.AddScoped(sp =>
+{
+    var apiSettings = sp.GetRequiredService<IOptions<ApiSettings>>();
+    return new HttpClient { BaseAddress = new Uri(apiSettings.Value.BaseUrl) };
+});
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
+builder.Services.AddBlazoredLocalStorage();
+builder.Services.AddScoped<ILocationService, LocationService>();
+
+// Add authentication services
+builder.Services.AddAuthenticationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, MockAuthenticationStateProvider>();
 
 var app = builder.Build();
 
