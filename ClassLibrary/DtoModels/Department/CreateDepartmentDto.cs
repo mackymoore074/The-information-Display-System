@@ -1,18 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ClassLibrary.DtoModels.Department
 {
-    public class DepartmentDto
+    public class CreateDepartmentDto
     {
-        public int Id { get; set; }
+        [Required]
+        [StringLength(100)]
         public string Name { get; set; } // Department name
+
         public string Description { get; set; } // Description of the department
-        public DateTime DateCreated { get; set; }
+
+        [Required]
         public int AgencyId { get; set; } // ID of the associated agency
+
+        [Required]
         public int LocationId { get; set; } // ID of the associated location
     }
 }

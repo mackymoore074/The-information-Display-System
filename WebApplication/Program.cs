@@ -1,12 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-
 using System.IdentityModel.Tokens.Jwt;
 using TheWebApplication.Middleware;
 using TheWebApplication.Security;

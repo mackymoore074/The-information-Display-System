@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ClassLibrary.DtoModels.Screen
+namespace SystemModels.Models
 {
     public class CreateScreenDto
     {
@@ -13,9 +9,10 @@ namespace ClassLibrary.DtoModels.Screen
         [StringLength(50)]
         public string Name { get; set; } // Unique screen name (e.g., "DM001", "LH003")
 
-        public int? LocationId { get; set; } // Foreign key to Location
-        public int? DepartmentId { get; set; } // Foreign key to Department
+        public int LocationId { get; set; } // Foreign key to Location
+        public int DepartmentId { get; set; } // Foreign key to Department
         public int AgencyId { get; set; } // Foreign key to Agency
+        public int AdminId { get; set; } // Foreign key to Admin
 
         [Required]
         public string ScreenType { get; set; } // Type of screen (e.g., "TV", "LED")

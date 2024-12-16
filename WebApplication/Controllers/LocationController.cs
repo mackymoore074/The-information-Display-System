@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SystemModels.Models;
-using SystemModels.DtoModels.Location;
 using SystemModels;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Location;
@@ -20,10 +19,10 @@ namespace TheWebApplication.Controllers
     [Authorize]
     public class LocationController : ControllerBase
     {
-        private readonly InfoDbContext _context;
+        private readonly ClassDBContext _context;
         private readonly ILogger<LocationController> _logger;
 
-        public LocationController(InfoDbContext context, ILogger<LocationController> logger)
+        public LocationController(ClassDBContext context, ILogger<LocationController> logger)
         {
             _context = context;
             _logger = logger;

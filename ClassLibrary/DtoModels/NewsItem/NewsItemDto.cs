@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace ClassLibrary.DtoModels.NewsItem
+namespace ClassLibrary.Models
 {
     // DTO for NewsItem
     public class NewsItemDto
     {
-        public int Id { get; set; }
+        public int Id { get; set; } = 1;
         public int AdminId { get; set; }
 
         [StringLength(100)]
@@ -30,7 +30,7 @@ namespace ClassLibrary.DtoModels.NewsItem
         public List<int> DepartmentId { get; set; }
         public List<int> LocationId { get; set; }
         public List<int> ScreenId { get; set; }
-
+        
 
         public NewsItemDto()
         {

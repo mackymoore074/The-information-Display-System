@@ -83,7 +83,7 @@ namespace ClassLibrary.Models
 
             // Employee-Department relationship
             modelBuilder.Entity<Employee>()
-                 .HasOne(e => e.Departments)
+                 .HasOne(e => e.Department)
                  .WithMany(d => d.Employees)
                  .HasForeignKey(e => e.DepartmentId)
                   .OnDelete(DeleteBehavior.Restrict);

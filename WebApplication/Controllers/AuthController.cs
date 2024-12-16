@@ -6,13 +6,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using SystemModels.API;
-using SystemModels;
-using SystemModels.DtoModels.Authorization;
 using Microsoft.AspNetCore.Authorization;
-using ClassLibrary.DtoModels.Auth;
-using ClassLibrary.DtoModels.Common;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Authorization;
+using ClassLibrary.API;
 
 namespace TheWebApplication.Controllers
 {
@@ -20,13 +17,13 @@ namespace TheWebApplication.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly InfoDbContext _context;
+        private readonly ClassDBContext _context;
         private readonly IConfiguration _configuration;
         private readonly IPasswordHasher<Admin> _passwordHasher;
         private readonly ILogger<AuthController> _logger;
 
         public AuthController(
-            InfoDbContext context,
+            ClassDBContext context,
             IConfiguration configuration,
             IPasswordHasher<Admin> passwordHasher,
             ILogger<AuthController> logger)

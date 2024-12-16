@@ -1,8 +1,7 @@
-using ClassLibrary.DtoModels.Common;
 using System.Text.Json;
-using ClassLibrary.DtoModels.Common;
 using WebApplication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ClassLibrary.API;
 
 namespace TheWebApplication.Security
 {

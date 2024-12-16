@@ -3,54 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace ClassLibrary.DtoModels.Employee
 {
     public class EmployeeDto
     {
-        public int Id { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Email { get; set; }
-        public DateTime DateCreated { get; set; }
-        public int DepartmentId { get; set; }
-        public string DepartmentName { get; set; }
-    }
+        public int Id { get; set; } // Employee's unique identifier
 
-    public class CreateEmployeeDto
-    {
-        [Required]
-        [StringLength(100)]
-        public string FirstName { get; set; }
+        public string FirstName { get; set; } // Employee's first name
 
-        [Required]
-        [StringLength(100)]
-        public string LastName { get; set; }
+        public string LastName { get; set; } // Employee's last name
 
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        public string Email { get; set; } // Employee's email address
 
-        [Required]
-        public int DepartmentId { get; set; }
-    }
+        public DateTime DateCreated { get; set; } // Date when the employee was created
 
-    public class UpdateEmployeeDto
-    {
-        [Required]
-        [StringLength(100)]
-        public string FirstName { get; set; }
+        public int AdminId { get; set; } // Name of the admin who created the employee
 
-        [Required]
-        [StringLength(100)]
-        public string LastName { get; set; }
-
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        [Required]
-        public int DepartmentId { get; set; }
+        public int DepartmentId { get; set; }// Names of the departments the employee is associated with
+        public object DepartmentName { get; set; }
     }
 }

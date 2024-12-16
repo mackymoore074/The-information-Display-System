@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using SystemModels.Models;
 using SystemModels;
 using Microsoft.AspNetCore.Authorization;
-using ClassLibrary.DtoModels.Screen;
 using ClassLibrary.Models;
 
 namespace TheWebApplication.Controllers
@@ -17,10 +16,10 @@ namespace TheWebApplication.Controllers
     [Route("api/[controller]")]
     public class ScreenController : ControllerBase
     {
-        private readonly InfoDbContext _context;
+        private readonly ClassDBContext _context;
         private readonly ILogger<ScreenController> _logger;
 
-        public ScreenController(InfoDbContext context, ILogger<ScreenController> logger)
+        public ScreenController(ClassDBContext context, ILogger<ScreenController> logger)
         {
             _context = context;
             _logger = logger;

@@ -6,8 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using SystemModels.DtoModels.Admin;
-using SystemModels;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Admin;
 using ClassLibrary.Models;
@@ -18,11 +16,11 @@ namespace TheWebApplication.Controllers
     [Route("api/[controller]")]
     public class AdminController : ControllerBase
     {
-        private readonly InfoDbContext _context;
+        private readonly ClassDBContext _context;
         private readonly ILogger<AdminController> _logger;
         private readonly IPasswordHasher<Admin> _passwordHasher;
 
-        public AdminController(InfoDbContext context, ILogger<AdminController> logger, IPasswordHasher<Admin> passwordHasher)
+        public AdminController(ClassDBContext context, ILogger<AdminController> logger, IPasswordHasher<Admin> passwordHasher)
         {
             _context = context;
             _logger = logger;

@@ -7,7 +7,7 @@ namespace ClassLibrary.DtoModels.NewsItem
 {
     public class CreateNewsItemDto
     {
-        public int AdminId { get; set; }
+        public int AdminId { get; set; } = 1;
         [StringLength(450)]
         public string Title { get; set; }
 

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using SystemModels;
 using SystemModels.Models;
-using SystemModels.DtoModels.NewsItem;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.NewsItem;
 using ClassLibrary.Models;
@@ -18,9 +17,9 @@ namespace TheWebApplication.Controllers
     [Authorize]
     public class NewsItemController : ControllerBase
     {
-        private readonly InfoDbContext _context;
+        private readonly ClassDBContext _context;
 
-        public NewsItemController(InfoDbContext context)
+        public NewsItemController(ClassDBContext context)
         {
             _context = context;
         }

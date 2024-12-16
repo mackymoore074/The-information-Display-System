@@ -5,10 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using SystemModels.Models;
-using SystemModels.DtoModels.Employee;
 using Microsoft.AspNetCore.Authorization;
-using ClassLibrary.DtoModels.Employee;
+using ClassLibrary.DtoModels.Department;
 using ClassLibrary.Models;
 
 namespace TheWebApplication.Controllers
@@ -16,184 +14,172 @@ namespace TheWebApplication.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class EmployeeController : ControllerBase
+    public class DepartmentController : ControllerBase
     {
-        private readonly InfoDbContext _context;
-        private readonly ILogger<EmployeeController> _logger;
+        private readonly ClassDBContext _context;
+        private readonly ILogger<DepartmentController> _logger;
 
-        public EmployeeController(InfoDbContext context, ILogger<EmployeeController> logger)
+        public DepartmentController(ClassDBContext context, ILogger<DepartmentController> logger)
         {
             _context = context;
             _logger = logger;
         }
 
-        // GET: api/employee
+        // GET: api/department
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<EmployeeDto>>> GetEmployees()
+        public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetDepartments()
         {
             try
             {
-                var employees = await _context.Employees
-                    .Select(e => new EmployeeDto
+                var departments = await _context.Departments
+                    .Select(d => new DepartmentDto
                     {
-                        Id = e.Id,
-                        FirstName = e.FirstName,
-                        LastName = e.LastName,
-                        Email = e.Email,
-                        DateCreated = e.DateCreated,
-                        AdminId = e.AdminId,
-                        DepartmentId = e.DepartmentId
+                        Id = d.Id,
+                        Name = d.Name,
+                        Description = d.Description,
+                        DateCreated = d.DateCreated,
+                        AgencyId = d.AgencyId,
+                        LocationId = d.LocationId
                     })
                     .ToListAsync();
 
-                return Ok(employees);
+                return Ok(departments);
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in GetEmployees", ex);
+                await LogErrorToDatabaseAsync("Error in GetDepartments", ex);
                 return StatusCode(500, "Internal server error.");
             }
         }
 
-        // GET: api/employee/{id}
+        // GET: api/department/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<EmployeeDto>> GetEmployee(int id)
+        public async Task<ActionResult<DepartmentDto>> GetDepartment(int id)
         {
             try
             {
-                var employee = await _context.Employees
-                    .Where(e => e.Id == id)
-                    .FirstOrDefaultAsync();
+                var department = await _context.Departments.FindAsync(id);
 
-                if (employee == null)
-                    return NotFound($"Employee with ID {id} not found.");
+                if (department == null)
+                    return NotFound($"Department with ID {id} not found.");
 
-                var employeeDto = new EmployeeDto
+                var departmentDto = new DepartmentDto
                 {
-                    Id = employee.Id,
-                    FirstName = employee.FirstName,
-                    LastName = employee.LastName,
-                    Email = employee.Email,
-                    DateCreated = employee.DateCreated,
-                    AdminId = employee.AdminId,
-                    DepartmentId = employee.DepartmentId
+                    Id = department.Id,
+                    Name = department.Name,
+                    Description = department.Description,
+                    DateCreated = department.DateCreated,
+                    AgencyId = department.AgencyId,
+                    LocationId = department.LocationId
                 };
 
-                return Ok(employeeDto);
+                return Ok(departmentDto);
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in GetEmployee", ex);
+                await LogErrorToDatabaseAsync("Error in GetDepartment", ex);
                 return StatusCode(500, "Internal server error.");
             }
         }
 
-        // POST: api/employee
+        // POST: api/department
         [HttpPost]
-        public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] CreateEmployeeDto createEmployeeDto)
+        public async Task<ActionResult<DepartmentDto>> CreateDepartment([FromBody] CreateDepartmentDto createDepartmentDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var employee = new Employee
+                var department = new Department
                 {
-                    FirstName = createEmployeeDto.FirstName,
-                    LastName = createEmployeeDto.LastName,
-                    Email = createEmployeeDto.Email,
-                    AdminId = createEmployeeDto.AdminId,
-                    DepartmentId = createEmployeeDto.DepartmentId,
-                    DateCreated = DateTime.UtcNow // Set the current date and time
+                    Name = createDepartmentDto.Name,
+                    Description = createDepartmentDto.Description,
+                    AgencyId = createDepartmentDto.AgencyId,
+                    LocationId = createDepartmentDto.LocationId,
+                    DateCreated = DateTime.UtcNow
                 };
 
-                // Assign departments
-
-
-                _context.Employees.Add(employee);
+                _context.Departments.Add(department);
                 await _context.SaveChangesAsync();
 
-                var employeeDto = new EmployeeDto
+                var departmentDto = new DepartmentDto
                 {
-                    Id = employee.Id,
-                    FirstName = employee.FirstName,
-                    LastName = employee.LastName,
-                    Email = employee.Email,
-                    DateCreated = employee.DateCreated,
-                    AdminId = employee.AdminId,
-                    DepartmentId = employee.DepartmentId
+                    Id = department.Id,
+                    Name = department.Name,
+                    Description = department.Description,
+                    DateCreated = department.DateCreated,
+                    AgencyId = department.AgencyId,
+                    LocationId = department.LocationId
                 };
 
-                return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employeeDto);
+                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id }, departmentDto);
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in CreateEmployee", ex);
+                await LogErrorToDatabaseAsync("Error in CreateDepartment", ex);
                 return StatusCode(500, "Internal server error.");
             }
         }
 
-        // PUT: api/employee/{id}
+        // PUT: api/department/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult<EmployeeDto>> UpdateEmployee(int id, [FromBody] UpdateEmployeeDto updateEmployeeDto)
+        public async Task<ActionResult<DepartmentDto>> UpdateDepartment(int id, [FromBody] UpdateDepartmentDto updateDepartmentDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var employee = await _context.Employees.FindAsync(id);
-                if (employee == null)
-                    return NotFound($"Employee with ID {id} not found.");
+                var department = await _context.Departments.FindAsync(id);
+                if (department == null)
+                    return NotFound($"Department with ID {id} not found.");
 
-                employee.FirstName = updateEmployeeDto.FirstName;
-                employee.LastName = updateEmployeeDto.LastName;
-                employee.Email = updateEmployeeDto.Email;
-                employee.DepartmentId = updateEmployeeDto.DepartmentId;
+                department.Name = updateDepartmentDto.Name;
+                department.Description = updateDepartmentDto.Description;
+                department.AgencyId = updateDepartmentDto.AgencyId;
+                department.LocationId = updateDepartmentDto.LocationId;
 
-                // You can update other fields similarly if needed, but I assume Email, AdminId, and DepartmentId are not meant to be updated
-
-                _context.Employees.Update(employee);
+                _context.Departments.Update(department);
                 await _context.SaveChangesAsync();
 
-                var employeeDto = new EmployeeDto
+                var departmentDto = new DepartmentDto
                 {
-                    Id = employee.Id,
-                    FirstName = employee.FirstName,
-                    LastName = employee.LastName,
-                    Email = employee.Email,
-                    DepartmentId = employee.DepartmentId
+                    Id = department.Id,
+                    Name = department.Name,
+                    Description = department.Description,
+                    DateCreated = department.DateCreated,
+                    AgencyId = department.AgencyId,
+                    LocationId = department.LocationId
                 };
 
-                return Ok(employeeDto);
+                return Ok(departmentDto);
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in UpdateEmployee", ex);
+                await LogErrorToDatabaseAsync("Error in UpdateDepartment", ex);
                 return StatusCode(500, "Internal server error.");
             }
         }
 
-
-
-        // DELETE: api/employee/{id}
+        // DELETE: api/department/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteEmployee(int id)
+        public async Task<IActionResult> DeleteDepartment(int id)
         {
             try
             {
-                var employee = await _context.Employees.FindAsync(id);
-                if (employee == null)
-                    return NotFound($"Employee with ID {id} not found.");
+                var department = await _context.Departments.FindAsync(id);
+                if (department == null)
+                    return NotFound($"Department with ID {id} not found.");
 
-                _context.Employees.Remove(employee);
+                _context.Departments.Remove(department);
                 await _context.SaveChangesAsync();
 
                 return NoContent();
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in DeleteEmployee", ex);
+                await LogErrorToDatabaseAsync("Error in DeleteDepartment", ex);
                 return StatusCode(500, "Internal server error.");
             }
         }

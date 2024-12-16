@@ -1,29 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ClassLibrary.DtoModels.Screen
+namespace SystemModels.Models
 {
     public class ScreenDto
     {
         public int Id { get; set; }
-        public string Name { get; set; }
-        public string ScreenType { get; set; }
-        public bool IsOnline { get; set; }
-        public string StatusMessage { get; set; }
-        public string MACAddress { get; set; }
-        public DateTime DateCreated { get; set; }
-        public DateTime LastCheckedIn { get; set; }
-        public DateTime LastUpdated { get; set; }
-        
-        public int AgencyId { get; set; }
-        public string AgencyName { get; set; }
-        public int? DepartmentId { get; set; }
-        public string DepartmentName { get; set; }
-        public int? LocationId { get; set; }
-        public string LocationName { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string Name { get; set; } // Unique screen name (e.g., "DM001", "LH003")
+
+        public int? LocationId { get; set; } // Foreign key to Location
+        public int? DepartmentId { get; set; } // Foreign key to Department
+        public int? AgencyId { get; set; } // Foreign key to Agency
+        public int? AdminId { get; set; } // Foreign key to Admin   
+
+        public string ScreenType { get; set; } // Type of screen (e.g., "TV", "LED")
+
+        public DateTime DateCreated { get; set; } // Date and time when the screen was created
+        public DateTime LastUpdated { get; set; } // Last time this screen was updated
+        public DateTime LastCheckedIn { get; set; } // Date and time when the screen last checked in
+
+        public bool IsOnline { get; set; } // Whether the screen is currently online or offline
+        public string StatusMessage { get; set; } // A message regarding the screen status
+        public string MACAddress { get; set; } // MAC address of the screen
     }
 }

@@ -6,10 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using SystemModels.Models;
-using SystemModels.DtoModels.Agency;
-using SystemModels;
-using ClassLibrary.DtoModels.Agency;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Agency;
 
 namespace TheWebApplication.Controllers
 {
@@ -17,10 +15,10 @@ namespace TheWebApplication.Controllers
     [ApiController]
     public class AgencyController : ControllerBase
     {
-        private readonly InfoDbContext _context;
+        private readonly ClassDBContext _context;
         private readonly ILogger<AgencyController> _logger;
 
-        public AgencyController(InfoDbContext context, ILogger<AgencyController> logger)
+        public AgencyController(ClassDBContext context, ILogger<AgencyController> logger)
         {
             _context = context;
             _logger = logger;

@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ClassLibrary.Models;
-using ClassLibrary.DtoModels.Common;
 using ClassLibrary.DtoModels.Employee;
 using ClassLibrary;
 using Microsoft.AspNetCore.Authorization;
+using ClassLibrary.API;
 
 namespace TheWebApplication.Controllers
 {
