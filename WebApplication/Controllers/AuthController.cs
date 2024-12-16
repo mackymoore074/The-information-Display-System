@@ -7,7 +7,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using SystemModels.API;
-using SystemModels.Models;
 using SystemModels;
 using SystemModels.DtoModels.Authorization;
 using Microsoft.AspNetCore.Authorization;

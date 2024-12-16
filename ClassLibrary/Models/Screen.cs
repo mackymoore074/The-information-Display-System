@@ -1,4 +1,4 @@
-﻿using ClassLibrary.Models;
+﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -16,16 +16,18 @@ namespace ClassLibrary.Models
         [StringLength(50)]
         public string Name { get; set; } // Unique screen name (e.g., "DM001", "LH003")
 
-        public int? LocationId { get; set; } // Foreign key to Location
-        public Location? Location { get; set; } // Navigation property
+        public int LocationId { get; set; } // Foreign key to Location
+        public Location Location { get; set; } // Navigation property
 
-        public int? DepartmentId { get; set; } // Foreign key to Department
-        public Department? Department { get; set; } // Navigation property
+        // Assuming many-to-many relationship for departments
 
         public int AgencyId { get; set; } // Foreign key to Agency
         public Agency Agency { get; set; } // Navigation property
         public DateTime DateCreated { get; set; } // Date and time when the screen was created
-        public List<Admin> Admins { get; set; } = new List<Admin>(); 
+        public int AdminId { get; set; } // Admin who created the screen
+        public Admin Admin { get; set; } // Navigation property for Admin
+        public int? DepartmentId { get; set; } // Foreign key to Department
+        public Department? Department { get; set; } // Navigation property
 
         [Required]
         public string ScreenType { get; set; } // Type of screen (e.g., "TV", "LED")
@@ -34,6 +36,7 @@ namespace ClassLibrary.Models
         public bool IsOnline { get; set; } // Whether the screen is currently online or offline
         public string StatusMessage { get; set; } // A message regarding the screen status
         public string MACAddress { get; set; } // MAC address of the screen
+
     }
 
 
