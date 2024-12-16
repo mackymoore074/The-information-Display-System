@@ -110,6 +110,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowBlazor");
 
+app.UseMiddleware<CustomAuthorizationMiddleware>();
 // Authentication and Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();

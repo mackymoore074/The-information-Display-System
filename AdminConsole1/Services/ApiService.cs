@@ -1,29 +1,24 @@
 ﻿using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Blazored.LocalStorage;
 
 public class ApiService
 {
     private readonly HttpClient _httpClient;
-    private readonly ILocalStorageService _localStorage;
 
-    public ApiService(HttpClient httpClient, ILocalStorageService localStorage)
+    // No need to inject ILocalStorageService anymore, since the handler handles the token
+    public ApiService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _localStorage = localStorage;
     }
 
     public async Task<string> GetDataAsync()
     {
-        var token = await _localStorage.GetItemAsync<string>("authToken"); // Retrieve the token from local storage
-
-        if (!string.IsNullOrEmpty(token))
+        try
         {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
+            // Make the HTTP GET request to the API
             var response = await _httpClient.GetAsync("https://localhost:7187");
 
+            // Check if the request was successful
             if (response.IsSuccessStatusCode)
             {
                 return await response.Content.ReadAsStringAsync();
@@ -33,9 +28,10 @@ public class ApiService
                 throw new HttpRequestException($"Failed to fetch data: {response.ReasonPhrase}");
             }
         }
-        else
+        catch (Exception ex)
         {
-            throw new HttpRequestException("Token is missing");
+            // Log the error or handle it as needed
+            throw new HttpRequestException($"An error occurred: {ex.Message}");
         }
     }
 }

@@ -10,6 +10,9 @@ using System.Net.Http.Headers;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Register the JwtAuthorizationHandler as a scoped service
+builder.Services.AddScoped<JwtAuthorizationHandler>();
+
 // Configure ApiSettings
 builder.Services.Configure<ApiSettings>(
     builder.Configuration.GetSection("ApiSettings"));
@@ -29,6 +32,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddBlazoredLocalStorage();
+
 
 // Add authentication services
 builder.Services.AddAuthenticationCore();
