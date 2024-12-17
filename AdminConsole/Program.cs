@@ -4,10 +4,9 @@ using Microsoft.AspNetCore.Components.Web;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using AdminConsole.Data.Authentication;
-using AdminConsole.Services;
 using Microsoft.Extensions.Options;
 using AdminConsole.IService;
-using TheWebApplication.Services;
+using AdminConsole.Services;
 
 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 
