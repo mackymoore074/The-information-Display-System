@@ -46,6 +46,14 @@ builder.Services.AddScoped<IAgencyService>(sp =>
     return new AgencyService(httpClient, logger, localStorage);
 });
 
+builder.Services.AddScoped<IDepartmentService>(sp => 
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var logger = sp.GetRequiredService<ILogger<DepartmentService>>();
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    return new DepartmentService(httpClient, logger, localStorage);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

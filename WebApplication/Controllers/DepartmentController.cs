@@ -1,13 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Department;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Common;
 
 namespace TheWebApplication.Controllers
 {
@@ -25,69 +22,122 @@ namespace TheWebApplication.Controllers
             _logger = logger;
         }
 
-        // GET: api/department
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetDepartments()
+        public async Task<ActionResult<ApiResponse<IEnumerable<DepartmentDto>>>> GetDepartments()
         {
             try
             {
                 var departments = await _context.Departments
+                    .Include(d => d.Location)
+                    .Include(d => d.Agency)
                     .Select(d => new DepartmentDto
                     {
                         Id = d.Id,
                         Name = d.Name,
                         Description = d.Description,
-                        DateCreated = d.DateCreated,
                         AgencyId = d.AgencyId,
-                        LocationId = d.LocationId
+                        LocationId = d.LocationId,
+                        AgencyName = d.Agency.Name,
+                        LocationName = d.Location.Name,
+                        DateCreated = d.DateCreated
                     })
                     .ToListAsync();
 
-                return Ok(departments);
+                return Ok(new ApiResponse<IEnumerable<DepartmentDto>>
+                {
+                    Success = true,
+                    Message = departments.Any() ? "Departments retrieved successfully." : "No departments found.",
+                    Data = departments
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in GetDepartments", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<IEnumerable<DepartmentDto>>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // GET: api/department/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<DepartmentDto>> GetDepartment(int id)
+        public async Task<ActionResult<ApiResponse<DepartmentDto>>> GetDepartment(int id)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse<DepartmentDto>
+                {
+                    Success = false,
+                    Message = "Invalid request.",
+                    Data = null
+                });
+            }
+
             try
             {
-                var department = await _context.Departments.FindAsync(id);
+                var department = await _context.Departments
+                    .Include(d => d.Location)
+                    .Include(d => d.Agency)
+                    .FirstOrDefaultAsync(d => d.Id == id);
 
                 if (department == null)
-                    return NotFound($"Department with ID {id} not found.");
+                {
+                    return NotFound(new ApiResponse<DepartmentDto>
+                    {
+                        Success = false,
+                        Message = $"Department with ID {id} not found.",
+                        Data = null
+                    });
+                }
 
                 var departmentDto = new DepartmentDto
                 {
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    DateCreated = department.DateCreated,
                     AgencyId = department.AgencyId,
-                    LocationId = department.LocationId
+                    LocationId = department.LocationId,
+                    AgencyName = department.Agency.Name,
+                    LocationName = department.Location.Name,
+                    DateCreated = department.DateCreated
                 };
 
-                return Ok(departmentDto);
+                return Ok(new ApiResponse<DepartmentDto>
+                {
+                    Success = true,
+                    Message = "Department retrieved successfully.",
+                    Data = departmentDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in GetDepartment", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<DepartmentDto>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // POST: api/department
         [HttpPost]
-        public async Task<ActionResult<DepartmentDto>> CreateDepartment([FromBody] CreateDepartmentDto createDepartmentDto)
+        public async Task<ActionResult<ApiResponse<DepartmentDto>>> CreateDepartment([FromBody] CreateDepartmentDto createDepartmentDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                               .Select(e => e.ErrorMessage)
+                                               .ToList();
+                return BadRequest(new ApiResponse<DepartmentDto>
+                {
+                    Success = false,
+                    Message = "Validation errors occurred.",
+                    Errors = errors
+                });
+            }
 
             try
             {
@@ -108,39 +158,64 @@ namespace TheWebApplication.Controllers
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    DateCreated = department.DateCreated,
                     AgencyId = department.AgencyId,
-                    LocationId = department.LocationId
+                    LocationId = department.LocationId,
+                    AgencyName = (await _context.Agencies.FindAsync(department.AgencyId))?.Name,
+                    LocationName = (await _context.Locations.FindAsync(department.LocationId))?.Name,
+                    DateCreated = department.DateCreated
                 };
 
-                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id }, departmentDto);
+                return CreatedAtAction(nameof(GetDepartment), new { id = department.Id }, new ApiResponse<DepartmentDto>
+                {
+                    Success = true,
+                    Message = "Department created successfully.",
+                    Data = departmentDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in CreateDepartment", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<DepartmentDto>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // PUT: api/department/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult<DepartmentDto>> UpdateDepartment(int id, [FromBody] UpdateDepartmentDto updateDepartmentDto)
+        public async Task<ActionResult<ApiResponse<DepartmentDto>>> UpdateDepartment(int id, [FromBody] UpdateDepartmentDto updateDepartmentDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                return BadRequest(new ApiResponse<DepartmentDto>
+                {
+                    Success = false,
+                    Message = "Invalid request.",
+                    Data = null
+                });
+            }
 
             try
             {
                 var department = await _context.Departments.FindAsync(id);
                 if (department == null)
-                    return NotFound($"Department with ID {id} not found.");
+                {
+                    return NotFound(new ApiResponse<DepartmentDto>
+                    {
+                        Success = false,
+                        Message = $"Department with ID {id} not found.",
+                        Data = null
+                    });
+                }
 
                 department.Name = updateDepartmentDto.Name;
                 department.Description = updateDepartmentDto.Description;
                 department.AgencyId = updateDepartmentDto.AgencyId;
                 department.LocationId = updateDepartmentDto.LocationId;
 
-                _context.Departments.Update(department);
+                _context.Entry(department).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
                 var departmentDto = new DepartmentDto
@@ -148,43 +223,70 @@ namespace TheWebApplication.Controllers
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    DateCreated = department.DateCreated,
                     AgencyId = department.AgencyId,
-                    LocationId = department.LocationId
+                    LocationId = department.LocationId,
+                    AgencyName = (await _context.Agencies.FindAsync(department.AgencyId))?.Name,
+                    LocationName = (await _context.Locations.FindAsync(department.LocationId))?.Name,
+                    DateCreated = department.DateCreated
                 };
 
-                return Ok(departmentDto);
+                return Ok(new ApiResponse<DepartmentDto>
+                {
+                    Success = true,
+                    Message = "Department updated successfully.",
+                    Data = departmentDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in UpdateDepartment", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<DepartmentDto>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // DELETE: api/department/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteDepartment(int id)
+        public async Task<ActionResult<ApiResponse<object>>> DeleteDepartment(int id)
         {
             try
             {
                 var department = await _context.Departments.FindAsync(id);
                 if (department == null)
-                    return NotFound($"Department with ID {id} not found.");
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = $"Department with ID {id} not found.",
+                        Data = null
+                    });
+                }
 
                 _context.Departments.Remove(department);
                 await _context.SaveChangesAsync();
 
-                return NoContent();
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Department deleted successfully.",
+                    Data = null
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in DeleteDepartment", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // Helper method to log errors to the database
         private async Task LogErrorToDatabaseAsync(string context, Exception ex)
         {
             _logger.LogError($"{context}: {ex.Message}", ex);
@@ -197,7 +299,7 @@ namespace TheWebApplication.Controllers
                     DateCreated = DateTime.UtcNow
                 };
 
-                _context.ErrorLogs.Add(errorLog);
+                await _context.ErrorLogs.AddAsync(errorLog);
                 await _context.SaveChangesAsync();
             }
             catch (Exception logEx)
