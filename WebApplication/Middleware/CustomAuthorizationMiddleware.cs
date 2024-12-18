@@ -15,23 +15,15 @@ namespace TheWebApplication.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            try
+            if (!context.User.Identity.IsAuthenticated && 
+                !context.Request.Path.StartsWithSegments("/api/auth"))
             {
-                await _next(context);
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                await HandleUnauthorizedResponse(context);
+                return;
+            }
 
-                if (context.Response.StatusCode == (int)HttpStatusCode.Unauthorized)
-                {
-                    await HandleUnauthorizedResponse(context);
-                }
-                else if (context.Response.StatusCode == (int)HttpStatusCode.Forbidden)
-                {
-                    await HandleForbiddenResponse(context);
-                }
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            await _next(context);
         }
 
         private async Task HandleUnauthorizedResponse(HttpContext context)

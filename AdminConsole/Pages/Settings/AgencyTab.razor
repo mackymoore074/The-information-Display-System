@@ -1,9 +1,12 @@
+@page "/agencies"
+@using AdminConsole.IService
 @using AdminConsole.Services
 @using ClassLibrary.DtoModels.Common
+@using ClassLibrary.DtoModels.Agency
 @using ClassLibrary.Models
-@using Microsoft.Extensions.Options
-@inject HttpClient Http
-@inject IOptions<ApiSettings> ApiSettings
+@using ClassLibrary.DtoModels.Location
+@inject IAgencyService AgencyService
+@inject ILocationService LocationService
 @inject IJSRuntime JSRuntime
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -32,7 +35,7 @@
                     <tr>
                         <td>@agency.Name</td>
                         <td>@agency.Description</td>
-                        <td>@agency.Location?.Name</td>
+                        <td>@agency.LocationName</td>
                         <td>@agency.DateCreated.ToShortDateString()</td>
                         <td>
                             <button class="btn btn-sm btn-primary me-2" @onclick="() => ShowModal(agency)">
@@ -104,9 +107,9 @@
 
 @code {
     private bool showModal;
-    private Agency editingAgency = new();
-    private List<Agency> agencies = new();
-    private List<Location> locations = new();
+    private AgencyDto editingAgency = new();
+    private List<AgencyDto> agencies = new();
+    private List<LocationDto> locations = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,10 +121,10 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Location>>>("/api/locations");
-            if (response?.Success == true)
+            var response = await LocationService.GetLocationsAsync();
+            if (response.Success)
             {
-                locations = response.Data;
+                locations = response.Data ?? new();
             }
         }
         catch (Exception ex)
@@ -134,10 +137,10 @@
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Agency>>>("/api/agencies");
-            if (response?.Success == true)
+            var response = await AgencyService.GetAgenciesAsync();
+            if (response.Success)
             {
-                agencies = response.Data;
+                agencies = response.Data ?? new();
             }
         }
         catch (Exception ex)
@@ -146,15 +149,15 @@
         }
     }
 
-    private void ShowModal(Agency? agency = null)
+    private void ShowModal(AgencyDto? agency = null)
     {
-        editingAgency = agency != null ? new Agency
+        editingAgency = agency != null ? new AgencyDto
         {
             Id = agency.Id,
             Name = agency.Name,
             Description = agency.Description,
             LocationId = agency.LocationId
-        } : new Agency();
+        } : new AgencyDto();
         showModal = true;
     }
 
@@ -168,20 +171,43 @@
     {
         try
         {
-            HttpResponseMessage response;
+            ApiResponse<AgencyDto> response;
+
             if (editingAgency.Id == 0)
             {
-                response = await Http.PostAsJsonAsync("/api/agencies", editingAgency);
+                var createAgencyDto = new CreateAgencyDto
+                {
+                    Name = editingAgency.Name,
+                    Description = editingAgency.Description,
+                    LocationId = editingAgency.LocationId
+                };
+
+                response = await AgencyService.CreateAgencyAsync(createAgencyDto);
             }
             else
             {
-                response = await Http.PutAsJsonAsync($"/api/agencies/{editingAgency.Id}", editingAgency);
+                var updateAgencyDto = new UpdateAgencyDto
+                {
+                    Name = editingAgency.Name,
+                    Description = editingAgency.Description,
+                    LocationId = editingAgency.LocationId
+                };
+
+                response = await AgencyService.UpdateAgencyAsync(editingAgency.Id, updateAgencyDto);
             }
 
-            if (response.IsSuccessStatusCode)
+            if (response.Success)
             {
                 await LoadAgencies();
                 HideModal();
+            }
+            else
+            {
+                Console.WriteLine($"Error: {response.Message}");
+                if (response.Errors != null)
+                {
+                    Console.WriteLine($"Errors: {string.Join(", ", response.Errors)}");
+                }
             }
         }
         catch (Exception ex)
@@ -192,15 +218,13 @@
 
     private async Task DeleteAgency(int id)
     {
-        if (JSRuntime is null) return;
-        
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "Are you sure you want to delete this agency?" });
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this agency?");
         if (!confirmed) return;
 
         try
         {
-            var response = await Http.DeleteAsync($"/api/agencies/{id}");
-            if (response.IsSuccessStatusCode)
+            var response = await AgencyService.DeleteAgencyAsync(id);
+            if (response.Success)
             {
                 await LoadAgencies();
             }

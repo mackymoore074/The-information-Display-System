@@ -7,6 +7,7 @@ using ClassLibrary.DtoModels.Location;
 using ClassLibrary.DtoModels.Common;
 using Microsoft.Extensions.Logging;
 using AdminConsole.IService;
+using Blazored.LocalStorage;
 
 namespace AdminConsole.Services
 {
@@ -14,22 +15,44 @@ namespace AdminConsole.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<LocationService> _logger;
+        private readonly ILocalStorageService _localStorage;
 
-        public LocationService(HttpClient httpClient, ILogger<LocationService> logger)
+        public LocationService(HttpClient httpClient, ILogger<LocationService> logger, ILocalStorageService localStorage)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _localStorage = localStorage;
         }
 
         public async Task<ApiResponse<List<LocationDto>>> GetLocationsAsync()
         {
             try
             {
-                var response = await _httpClient.GetAsync("api/locations");
-                response.EnsureSuccessStatusCode();
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                
+                var response = await _httpClient.GetAsync("api/location");
                 var content = await response.Content.ReadAsStringAsync();
-                var locations = JsonSerializer.Deserialize<ApiResponse<List<LocationDto>>>(content);
-                return locations;
+                _logger.LogInformation($"Response content: {content}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"API returned {response.StatusCode}: {content}");
+                    return new ApiResponse<List<LocationDto>>
+                    {
+                        Success = false,
+                        Message = $"API error: {response.StatusCode}",
+                        Data = new List<LocationDto>()
+                    };
+                }
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var result = JsonSerializer.Deserialize<ApiResponse<List<LocationDto>>>(content, options);
+                return result;
             }
             catch (Exception ex)
             {
@@ -37,8 +60,8 @@ namespace AdminConsole.Services
                 return new ApiResponse<List<LocationDto>>
                 {
                     Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
+                    Message = "Error retrieving locations",
+                    Data = new List<LocationDto>()
                 };
             }
         }
@@ -47,7 +70,7 @@ namespace AdminConsole.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"api/locations/{id}");
+                var response = await _httpClient.GetAsync($"api/location/{id}");
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
                 var location = JsonSerializer.Deserialize<ApiResponse<LocationDto>>(content);
@@ -69,11 +92,30 @@ namespace AdminConsole.Services
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("api/locations", createLocationDto);
-                response.EnsureSuccessStatusCode();
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.PostAsJsonAsync("api/location", createLocationDto);
                 var content = await response.Content.ReadAsStringAsync();
-                var location = JsonSerializer.Deserialize<ApiResponse<LocationDto>>(content);
-                return location;
+                _logger.LogInformation($"Create response content: {content}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"API returned {response.StatusCode}: {content}");
+                    return new ApiResponse<LocationDto>
+                    {
+                        Success = false,
+                        Message = $"API error: {response.StatusCode}",
+                    };
+                }
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var result = JsonSerializer.Deserialize<ApiResponse<LocationDto>>(content, options);
+                return result;
             }
             catch (Exception ex)
             {
@@ -81,8 +123,8 @@ namespace AdminConsole.Services
                 return new ApiResponse<LocationDto>
                 {
                     Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
+                    Message = "Error creating location",
+                    Errors = new List<string> { ex.Message }
                 };
             }
         }
@@ -91,11 +133,30 @@ namespace AdminConsole.Services
         {
             try
             {
-                var response = await _httpClient.PutAsJsonAsync($"api/locations/{id}", updateLocationDto);
-                response.EnsureSuccessStatusCode();
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.PutAsJsonAsync($"api/location/{id}", updateLocationDto);
                 var content = await response.Content.ReadAsStringAsync();
-                var location = JsonSerializer.Deserialize<ApiResponse<LocationDto>>(content);
-                return location;
+                _logger.LogInformation($"Update response content: {content}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"API returned {response.StatusCode}: {content}");
+                    return new ApiResponse<LocationDto>
+                    {
+                        Success = false,
+                        Message = $"API error: {response.StatusCode}",
+                    };
+                }
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var result = JsonSerializer.Deserialize<ApiResponse<LocationDto>>(content, options);
+                return result;
             }
             catch (Exception ex)
             {
@@ -103,8 +164,8 @@ namespace AdminConsole.Services
                 return new ApiResponse<LocationDto>
                 {
                     Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
+                    Message = "Error updating location",
+                    Errors = new List<string> { ex.Message }
                 };
             }
         }
@@ -113,7 +174,7 @@ namespace AdminConsole.Services
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"api/locations/{id}");
+                var response = await _httpClient.DeleteAsync($"api/location/{id}");
                 response.EnsureSuccessStatusCode();
                 return new ApiResponse<object>
                 {

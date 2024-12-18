@@ -26,11 +26,25 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddBlazoredLocalStorage();
-builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<ILocationService>(sp => 
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var logger = sp.GetRequiredService<ILogger<LocationService>>();
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    return new LocationService(httpClient, logger, localStorage);
+});
 
 // Add authentication services
 builder.Services.AddAuthenticationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, MockAuthenticationStateProvider>();
+
+builder.Services.AddScoped<IAgencyService>(sp => 
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var logger = sp.GetRequiredService<ILogger<AgencyService>>();
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    return new AgencyService(httpClient, logger, localStorage);
+});
 
 var app = builder.Build();
 

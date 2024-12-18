@@ -14,9 +14,12 @@ namespace ClassLibrary.Models
         public int Id { get; set; }
 
         [Required]
-        [StringLength(50)]
+        [StringLength(200)]
         [JsonPropertyName("name")]
         public string Name { get; set; } // Unique screen name (e.g., "DM001", "LH003")
+
+        [StringLength(500)]
+        public string Description { get; set; }
 
         [JsonPropertyName("locationId")]
         public int LocationId { get; set; } // Foreign key to Location

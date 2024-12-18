@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ClassLibrary.Models;
 using System.Text.Encodings.Web;
+using ClassLibrary.DtoModels.Screen;
 
 namespace TheWebApplication.Controllers
 {
@@ -26,6 +27,7 @@ namespace TheWebApplication.Controllers
             {
                 var screens = await _context.Screens
                     .Include(s => s.Location)
+                    .Include(s => s.Department)
                     .Include(s => s.Agency)
                     .Select(s => new ScreenDto
                     {
@@ -40,10 +42,9 @@ namespace TheWebApplication.Controllers
                         IsOnline = s.IsOnline,
                         StatusMessage = s.StatusMessage,
                         MACAddress = s.MACAddress,
-                        Location=s.Location,
-                        Department=s.Department,
-                        Agency=s.Agency,
-                        DepartmentId=s.DepartmentId
+                        LocationName = s.Location.Name,
+                        DepartmentName = s.Department != null ? s.Department.Name : "",
+                        AgencyName = s.Agency.Name
                     })
                     .ToListAsync();
 
@@ -83,7 +84,10 @@ namespace TheWebApplication.Controllers
                     LastCheckedIn = screen.LastCheckedIn,
                     IsOnline = screen.IsOnline,
                     StatusMessage = screen.StatusMessage,
-                    MACAddress = screen.MACAddress
+                    MACAddress = screen.MACAddress,
+                    LocationName = screen.Location?.Name,
+                    DepartmentName = screen.Department?.Name,
+                    AgencyName = screen.Agency?.Name
                 };
 
                 return Ok(screenDto);
@@ -107,17 +111,17 @@ namespace TheWebApplication.Controllers
                 var screen = new Screen
                 {
                     Name = createScreenDto.Name,
-                    LocationId = createScreenDto.LocationId,
+                    Description = createScreenDto.Description,
                     DepartmentId = createScreenDto.DepartmentId,
                     AgencyId = createScreenDto.AgencyId,
-                    AdminId = createScreenDto.AdminId,
+                    LocationId = createScreenDto.LocationId,
+                    AdminId = 1,
                     ScreenType = createScreenDto.ScreenType,
-                    LastUpdated = DateTime.UtcNow,
-                    LastCheckedIn = DateTime.UtcNow,
                     IsOnline = createScreenDto.IsOnline,
                     StatusMessage = createScreenDto.StatusMessage,
                     MACAddress = createScreenDto.MACAddress,
-                    DateCreated = DateTime.UtcNow // Set the current date and time
+                    LastUpdated = DateTime.UtcNow,
+                    LastCheckedIn = DateTime.UtcNow
                 };
 
                 _context.Screens.Add(screen);
@@ -135,7 +139,10 @@ namespace TheWebApplication.Controllers
                     LastCheckedIn = screen.LastCheckedIn,
                     IsOnline = screen.IsOnline,
                     StatusMessage = screen.StatusMessage,
-                    MACAddress = screen.MACAddress
+                    MACAddress = screen.MACAddress,
+                    LocationName = screen.Location?.Name,
+                    DepartmentName = screen.Department?.Name,
+                    AgencyName = screen.Agency?.Name
                 };
 
                 return CreatedAtAction(nameof(GetScreen), new { id = screen.Id }, screenDto);
@@ -184,7 +191,10 @@ namespace TheWebApplication.Controllers
                     LastCheckedIn = screen.LastCheckedIn,
                     IsOnline = screen.IsOnline,
                     StatusMessage = screen.StatusMessage,
-                    MACAddress = screen.MACAddress
+                    MACAddress = screen.MACAddress,
+                    LocationName = screen.Location?.Name,
+                    DepartmentName = screen.Department?.Name,
+                    AgencyName = screen.Agency?.Name
                 };
 
                 return Ok(screenDto);

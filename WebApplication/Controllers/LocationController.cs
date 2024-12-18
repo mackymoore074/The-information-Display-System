@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.DtoModels.Location;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Common;
 
 namespace TheWebApplication.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -22,12 +22,11 @@ namespace TheWebApplication.Controllers
             _logger = logger;
         }
 
-        [HttpGet("get-locations")]
-        public async Task<ActionResult<IEnumerable<LocationDto>>> GetLocations()
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<IEnumerable<LocationDto>>>> GetLocations()
         {
             try
             {
-                _logger.LogInformation("Fetching locations...");
                 var locations = await _context.Locations
                     .Select(l => new LocationDto
                     {
@@ -38,31 +37,37 @@ namespace TheWebApplication.Controllers
                     })
                     .ToListAsync();
 
-                if (locations == null || !locations.Any())
+                return Ok(new ApiResponse<IEnumerable<LocationDto>>
                 {
-                    _logger.LogWarning("No locations found in the database.");
-                    return NotFound("No locations found.");
-                }
-
-                _logger.LogInformation($"Fetched {locations.Count} locations.");
-                return Ok(locations);
+                    Success = true,
+                    Message = locations.Any() ? "Locations retrieved successfully." : "No locations found.",
+                    Data = locations
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error in GetLocations: {ex.Message}", ex);
                 await LogErrorToDatabaseAsync("Error in GetLocations", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<IEnumerable<LocationDto>>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-
-        // GET: api/location/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<LocationDto>> GetLocation(int id)
+        public async Task<ActionResult<ApiResponse<LocationDto>>> GetLocation(int id)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponse<LocationDto>
+                {
+                    Success = false,
+                    Message = "Invalid request.",
+                    Data = null
+                });
             }
 
             try
@@ -74,7 +79,12 @@ namespace TheWebApplication.Controllers
 
                 if (location == null)
                 {
-                    return NotFound($"Location with ID {id} not found.");
+                    return NotFound(new ApiResponse<LocationDto>
+                    {
+                        Success = false,
+                        Message = $"Location with ID {id} not found.",
+                        Data = null
+                    });
                 }
 
                 var locationDto = new LocationDto
@@ -85,25 +95,39 @@ namespace TheWebApplication.Controllers
                     DateCreated = location.DateCreated,
                 };
 
-                return Ok(locationDto);
+                return Ok(new ApiResponse<LocationDto>
+                {
+                    Success = true,
+                    Message = "Location retrieved successfully.",
+                    Data = locationDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in GetLocation", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<LocationDto>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // POST: api/location
         [HttpPost]
-        public async Task<ActionResult<LocationDto>> CreateLocation([FromBody] CreateLocationDto createLocationDto)
+        public async Task<ActionResult<ApiResponse<LocationDto>>> CreateLocation([FromBody] CreateLocationDto createLocationDto)
         {
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors)
                                                .Select(e => e.ErrorMessage)
                                                .ToList();
-                return BadRequest(errors);
+                return BadRequest(new ApiResponse<LocationDto>
+                {
+                    Success = false,
+                    Message = "Validation errors occurred.",
+                    Errors = errors
+                });
             }
 
             try
@@ -112,7 +136,8 @@ namespace TheWebApplication.Controllers
                 {
                     Name = createLocationDto.Name,
                     Address = createLocationDto.Address,
-                    DateCreated = DateTime.UtcNow
+                    DateCreated = DateTime.UtcNow,
+                    AdminId = 1
                 };
 
                 _context.Locations.Add(location);
@@ -126,22 +151,36 @@ namespace TheWebApplication.Controllers
                     DateCreated = location.DateCreated
                 };
 
-                return CreatedAtAction(nameof(GetLocation), new { id = location.Id }, locationDto);
+                return CreatedAtAction(nameof(GetLocation), new { id = location.Id }, new ApiResponse<LocationDto>
+                {
+                    Success = true,
+                    Message = "Location created successfully.",
+                    Data = locationDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in CreateLocation", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<LocationDto>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // PUT: api/location/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateLocation(int id, [FromBody] UpdateLocationDto updateLocationDto)
+        public async Task<ActionResult<ApiResponse<LocationDto>>> UpdateLocation(int id, [FromBody] UpdateLocationDto updateLocationDto)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponse<LocationDto>
+                {
+                    Success = false,
+                    Message = "Invalid request.",
+                    Data = null
+                });
             }
 
             try
@@ -149,7 +188,12 @@ namespace TheWebApplication.Controllers
                 var location = await _context.Locations.FindAsync(id);
                 if (location == null)
                 {
-                    return NotFound($"Location with ID {id} not found.");
+                    return NotFound(new ApiResponse<LocationDto>
+                    {
+                        Success = false,
+                        Message = $"Location with ID {id} not found.",
+                        Data = null
+                    });
                 }
 
                 location.Name = updateLocationDto.Name;
@@ -166,40 +210,63 @@ namespace TheWebApplication.Controllers
                     DateCreated = location.DateCreated
                 };
 
-                return Ok(locationDto);
+                return Ok(new ApiResponse<LocationDto>
+                {
+                    Success = true,
+                    Message = "Location updated successfully.",
+                    Data = locationDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in UpdateLocation", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<LocationDto>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // DELETE: api/location/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteLocation(int id)
+        public async Task<ActionResult<ApiResponse<object>>> DeleteLocation(int id)
         {
             try
             {
                 var location = await _context.Locations.FindAsync(id);
                 if (location == null)
                 {
-                    return NotFound($"Location with ID {id} not found.");
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = $"Location with ID {id} not found.",
+                        Data = null
+                    });
                 }
 
                 _context.Locations.Remove(location);
                 await _context.SaveChangesAsync();
 
-                return NoContent();
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Location deleted successfully.",
+                    Data = null
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in DeleteLocation", ex);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Internal server error.",
+                    Data = null
+                });
             }
         }
 
-        // Helper method to log errors to the database
         private async Task LogErrorToDatabaseAsync(string context, Exception ex)
         {
             _logger.LogError($"{context}: {ex.Message}", ex);

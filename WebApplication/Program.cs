@@ -110,10 +110,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowBlazor");
 
-app.UseMiddleware<CustomAuthorizationMiddleware>();
 // Authentication and Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Custom middleware should come after authentication
+app.UseMiddleware<CustomAuthorizationMiddleware>();
 
 // Map controllers and apply CORS policy
 app.MapControllers().RequireCors("AllowBlazor");

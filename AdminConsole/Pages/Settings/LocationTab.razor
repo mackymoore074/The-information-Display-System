@@ -66,7 +66,7 @@
                         <ValidationSummary />
 
                         <div class="mb-3">
-                            <label class="form-label">Name</label>
+                            <label class="form-label">Name</label>x
                             <InputText @bind-Value="editingLocation.Name" class="form-control" />
                             <ValidationMessage For="@(() => editingLocation.Name)" />
                         </div>
@@ -152,13 +152,14 @@
 
     private async Task HandleSubmit()
     {
+        Console.WriteLine("HandleSubmit called");
         try
         {
             ApiResponse<LocationDto> response;
 
             if (editingLocation.Id == 0)
             {
-                // Create a new location
+                Console.WriteLine("Creating new location");
                 var createLocationDto = new CreateLocationDto
                     {
                         Name = editingLocation.Name,
@@ -166,10 +167,15 @@
                     };
 
                 response = await LocationService.CreateLocationAsync(createLocationDto);
+                Console.WriteLine($"Create response: {response.Message}");
+                if (response.Errors != null)
+                {
+                    Console.WriteLine($"Errors: {string.Join(", ", response.Errors)}");
+                }
             }
             else
             {
-                // Update an existing location
+                Console.WriteLine("Updating existing location");
                 var updateLocationDto = new UpdateLocationDto
                     {
                         Name = editingLocation.Name,
@@ -181,6 +187,7 @@
 
             if (response.Success)
             {
+                Console.WriteLine("Operation successful");
                 await LoadLocations();
                 HideModal();
             }
@@ -194,5 +201,4 @@
             Console.WriteLine($"Error saving location: {ex.Message}");
         }
     }
-
 }

@@ -16,35 +16,28 @@ namespace AdminConsole.Data.Authentication
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            try
+            var localStorageToken = await _localStorage.GetItemAsync<string>("authToken");
+            
+            if (string.IsNullOrEmpty(localStorageToken))
             {
-                var token = await _localStorage.GetItemAsync<string>("authToken");
-                if (string.IsNullOrEmpty(token))
-                {
-                    return _anonymous;
-                }
-
-                var user = await _localStorage.GetItemAsync<UserData>("user");
-                if (user == null)
-                {
-                    return _anonymous;
-                }
-
-                var claims = new[]
-                {
-                    new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role),
-                    new Claim("AdminId", user.AdminId.ToString())
-                };
-
-                var identity = new ClaimsIdentity(claims, "Bearer");
-                return new AuthenticationState(new ClaimsPrincipal(identity));
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
-            catch (InvalidOperationException)
+
+            var loginData = await _localStorage.GetItemAsync<LoginData>("loginData");
+            if (loginData == null)
             {
-                return _anonymous;
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, loginData.Email),
+                new Claim(ClaimTypes.Role, loginData.Role),
+                new Claim("AdminId", loginData.AdminId.ToString())
+            };
+
+            var identity = new ClaimsIdentity(claims, "jwt");
+            return new AuthenticationState(new ClaimsPrincipal(identity));
         }
 
         public async Task MarkUserAsAuthenticated(LoginData loginData)

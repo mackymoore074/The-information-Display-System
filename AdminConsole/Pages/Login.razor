@@ -112,9 +112,9 @@
                         LastName = result.Data.LastName
                     };
 
-                    await ((MockAuthenticationStateProvider)AuthStateProvider)
-                        .MarkUserAsAuthenticated(loginData);
-                        
+                    await LocalStorage.SetItemAsync("authToken", loginData.Token);
+                    await LocalStorage.SetItemAsync("loginData", loginData);
+                    await ((MockAuthenticationStateProvider)AuthStateProvider).MarkUserAsAuthenticated(loginData);
                     NavigationManager.NavigateTo("/");
                 }
                 else
