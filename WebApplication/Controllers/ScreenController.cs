@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Common;
 using System.Text.Encodings.Web;
 using ClassLibrary.DtoModels.Screen;
+using System.Globalization;
 
 namespace TheWebApplication.Controllers
 {
@@ -20,8 +23,8 @@ namespace TheWebApplication.Controllers
         }
 
         // GET: api/screen
-        [HttpGet("get-screens")]
-        public async Task<ActionResult<IEnumerable<ScreenDto>>> GetScreens()
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<List<ScreenDto>>>> GetScreens()
         {
             try
             {
@@ -35,97 +38,175 @@ namespace TheWebApplication.Controllers
                         Name = s.Name,
                         LocationId = s.LocationId,
                         AgencyId = s.AgencyId,
+                        DepartmentId = s.DepartmentId,
                         AdminId = s.AdminId,
-                        ScreenType = s.ScreenType,
+                        ScreenType = s.ScreenType ?? string.Empty,
+                        IsOnline = s.IsOnline,
+                        StatusMessage = s.StatusMessage ?? string.Empty,
+                        MACAddress = s.MACAddress ?? string.Empty,
                         LastUpdated = s.LastUpdated,
                         LastCheckedIn = s.LastCheckedIn,
-                        IsOnline = s.IsOnline,
-                        StatusMessage = s.StatusMessage,
-                        MACAddress = s.MACAddress,
-                        LocationName = s.Location.Name,
-                        DepartmentName = s.Department != null ? s.Department.Name : "",
-                        AgencyName = s.Agency.Name
+                        LocationName = s.Location.Name ?? string.Empty,
+                        DepartmentName = s.Department.Name ?? string.Empty,
+                        AgencyName = s.Agency.Name ?? string.Empty
                     })
                     .ToListAsync();
 
-                return Ok(screens);
+                return Ok(new ApiResponse<List<ScreenDto>>
+                {
+                    Success = true,
+                    Message = "Screens retrieved successfully",
+                    Data = screens
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in GetScreens", ex);
-                return StatusCode(500, "Internal server error.");
+                var response = new ApiResponse<List<ScreenDto>>
+                {
+                    Success = false,
+                    Message = "Internal server error",
+                    Data = new List<ScreenDto>()
+                };
+                response.Errors.Add(ex.Message);
+                return StatusCode(500, response);
             }
         }
 
         // GET: api/screen/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<ScreenDto>> GetScreen(int id)
+        public async Task<ActionResult<ApiResponse<ScreenDto>>> GetScreen(int id)
         {
             try
             {
                 var screen = await _context.Screens
                     .Include(s => s.Location)
+                    .Include(s => s.Department)
                     .Include(s => s.Agency)
                     .FirstOrDefaultAsync(s => s.Id == id);
 
                 if (screen == null)
-                    return NotFound($"Screen with ID {id} not found.");
+                    return NotFound(new ApiResponse<ScreenDto>
+                    {
+                        Success = false,
+                        Message = $"Screen with ID {id} not found",
+                        Data = default
+                    });
 
-                
                 var screenDto = new ScreenDto
                 {
                     Id = screen.Id,
                     Name = screen.Name,
                     LocationId = screen.LocationId,
                     AgencyId = screen.AgencyId,
+                    DepartmentId = screen.DepartmentId,
                     AdminId = screen.AdminId,
-                    ScreenType = screen.ScreenType,
+                    ScreenType = screen.ScreenType ?? string.Empty,
+                    IsOnline = screen.IsOnline,
+                    StatusMessage = screen.StatusMessage ?? string.Empty,
+                    MACAddress = screen.MACAddress ?? string.Empty,
                     LastUpdated = screen.LastUpdated,
                     LastCheckedIn = screen.LastCheckedIn,
-                    IsOnline = screen.IsOnline,
-                    StatusMessage = screen.StatusMessage,
-                    MACAddress = screen.MACAddress,
-                    LocationName = screen.Location?.Name,
-                    DepartmentName = screen.Department?.Name,
-                    AgencyName = screen.Agency?.Name
+                    LocationName = screen.Location?.Name ?? string.Empty,
+                    DepartmentName = screen.Department?.Name ?? string.Empty,
+                    AgencyName = screen.Agency?.Name ?? string.Empty
                 };
 
-                return Ok(screenDto);
+                return Ok(new ApiResponse<ScreenDto>
+                {
+                    Success = true,
+                    Message = "Screen retrieved successfully",
+                    Data = screenDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in GetScreen", ex);
-                return StatusCode(500, "Internal server error.");
+                var response = new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Internal server error",
+                    Data = default
+                };
+                response.Errors.Add(ex.Message);
+                return StatusCode(500, response);
             }
         }
 
         // POST: api/screen
         [HttpPost]
-        public async Task<ActionResult<ScreenDto>> CreateScreen([FromBody] CreateScreenDto createScreenDto)
+        public async Task<ActionResult<ApiResponse<ScreenDto>>> CreateScreen([FromBody] CreateScreenDto createScreenDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var response = new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Invalid model state"
+                };
+                response.Errors.AddRange(ModelState.Values
+                    .SelectMany(x => x.Errors)
+                    .Select(x => x.ErrorMessage));
+                return BadRequest(response);
+            }
 
             try
             {
+                _logger.LogInformation($"Creating screen with Name: {createScreenDto.Name}, " +
+                    $"LocationId: {createScreenDto.LocationId}, " +
+                    $"AgencyId: {createScreenDto.AgencyId}, " +
+                    $"DepartmentId: {createScreenDto.DepartmentId}, " +
+                    $"AdminId: {createScreenDto.AdminId}");
+
                 var screen = new Screen
                 {
                     Name = createScreenDto.Name,
                     Description = createScreenDto.Description,
-                    DepartmentId = createScreenDto.DepartmentId,
-                    AgencyId = createScreenDto.AgencyId,
-                    LocationId = createScreenDto.LocationId,
+                    LocationId = string.IsNullOrEmpty(createScreenDto.LocationId) ? 0 : int.Parse(createScreenDto.LocationId),
+                    AgencyId = string.IsNullOrEmpty(createScreenDto.AgencyId) ? 0 : int.Parse(createScreenDto.AgencyId),
+                    DepartmentId = string.IsNullOrEmpty(createScreenDto.DepartmentId) ? null : int.Parse(createScreenDto.DepartmentId),
                     AdminId = 1,
                     ScreenType = createScreenDto.ScreenType,
                     IsOnline = createScreenDto.IsOnline,
                     StatusMessage = createScreenDto.StatusMessage,
                     MACAddress = createScreenDto.MACAddress,
                     LastUpdated = DateTime.UtcNow,
-                    LastCheckedIn = DateTime.UtcNow
+                    LastCheckedIn = DateTime.UtcNow,
+                    DateCreated = DateTime.UtcNow
                 };
 
+                _logger.LogInformation($"Parsed screen data: " +
+                    $"LocationId: {screen.LocationId}, " +
+                    $"AgencyId: {screen.AgencyId}, " +
+                    $"DepartmentId: {screen.DepartmentId}, " +
+                    $"AdminId: {screen.AdminId}");
+
                 _context.Screens.Add(screen);
-                await _context.SaveChangesAsync();
+
+                try 
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException dbEx)
+                {
+                    _logger.LogError($"Database error: {dbEx.Message}");
+                    if (dbEx.InnerException != null)
+                    {
+                        _logger.LogError($"Inner exception: {dbEx.InnerException.Message}");
+                    }
+                    throw;
+                }
+
+                // Load related entities for the response
+                await _context.Entry(screen)
+                    .Reference(s => s.Location)
+                    .LoadAsync();
+                await _context.Entry(screen)
+                    .Reference(s => s.Department)
+                    .LoadAsync();
+                await _context.Entry(screen)
+                    .Reference(s => s.Agency)
+                    .LoadAsync();
 
                 var screenDto = new ScreenDto
                 {
@@ -133,49 +214,113 @@ namespace TheWebApplication.Controllers
                     Name = screen.Name,
                     LocationId = screen.LocationId,
                     AgencyId = screen.AgencyId,
+                    DepartmentId = screen.DepartmentId,
                     AdminId = screen.AdminId,
-                    ScreenType = screen.ScreenType,
+                    ScreenType = screen.ScreenType ?? string.Empty,
+                    IsOnline = screen.IsOnline,
+                    StatusMessage = screen.StatusMessage ?? string.Empty,
+                    MACAddress = screen.MACAddress ?? string.Empty,
                     LastUpdated = screen.LastUpdated,
                     LastCheckedIn = screen.LastCheckedIn,
-                    IsOnline = screen.IsOnline,
-                    StatusMessage = screen.StatusMessage,
-                    MACAddress = screen.MACAddress,
-                    LocationName = screen.Location?.Name,
-                    DepartmentName = screen.Department?.Name,
-                    AgencyName = screen.Agency?.Name
+                    LocationName = screen.Location?.Name ?? string.Empty,
+                    DepartmentName = screen.Department?.Name ?? string.Empty,
+                    AgencyName = screen.Agency?.Name ?? string.Empty
                 };
 
-                return CreatedAtAction(nameof(GetScreen), new { id = screen.Id }, screenDto);
+                return CreatedAtAction(
+                    nameof(GetScreen), 
+                    new { id = screen.Id }, 
+                    new ApiResponse<ScreenDto>
+                    {
+                        Success = true,
+                        Message = "Screen created successfully",
+                        Data = screenDto
+                    });
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogError($"Error parsing screen data: {ex.Message}");
+                return BadRequest(new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Invalid ID format provided",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError($"Database error while saving screen: {dbEx.Message}");
+                if (dbEx.InnerException != null)
+                {
+                    _logger.LogError($"Inner exception: {dbEx.InnerException.Message}");
+                }
+                return StatusCode(500, new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Database error occurred",
+                    Errors = new List<string> { dbEx.Message }
+                });
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in CreateScreen", ex);
-                return StatusCode(500, "Internal server error.");
+                _logger.LogError($"Unexpected error creating screen: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner exception: {ex.InnerException.Message}");
+                }
+                return StatusCode(500, new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Internal server error",
+                    Errors = new List<string> { ex.Message }
+                });
             }
         }
 
         // PUT: api/screen/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult<ScreenDto>> UpdateScreen(int id, [FromBody] UpdateScreenDto updateScreenDto)
+        public async Task<ActionResult<ApiResponse<ScreenDto>>> UpdateScreen(int id, [FromBody] UpdateScreenDto updateScreenDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequest(new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Invalid model state",
+                    Data = default
+                });
 
             try
             {
                 var screen = await _context.Screens.FindAsync(id);
                 if (screen == null)
-                    return NotFound($"Screen with ID {id} not found.");
+                    return NotFound(new ApiResponse<ScreenDto>
+                    {
+                        Success = false,
+                        Message = $"Screen with ID {id} not found",
+                        Data = default
+                    });
+
+                if (!int.TryParse(updateScreenDto.LocationId, out int locationId) ||
+                    !int.TryParse(updateScreenDto.AgencyId, out int agencyId))
+                {
+                    return BadRequest(new ApiResponse<ScreenDto>
+                    {
+                        Success = false,
+                        Message = "Invalid ID format"
+                    });
+                }
 
                 screen.Name = updateScreenDto.Name;
-                screen.LocationId = updateScreenDto.LocationId;
-                screen.AgencyId = updateScreenDto.AgencyId;
-                screen.ScreenType = updateScreenDto.ScreenType;
+                screen.LocationId = locationId;
+                screen.AgencyId = agencyId;
+                screen.DepartmentId = !string.IsNullOrEmpty(updateScreenDto.DepartmentId) 
+                    ? int.Parse(updateScreenDto.DepartmentId) 
+                    : null;
+                screen.ScreenType = updateScreenDto.ScreenType ?? string.Empty;
                 screen.LastUpdated = DateTime.UtcNow;
-                screen.LastCheckedIn = DateTime.UtcNow;
                 screen.IsOnline = updateScreenDto.IsOnline;
-                screen.StatusMessage = updateScreenDto.StatusMessage;
-                screen.MACAddress = updateScreenDto.MACAddress;
+                screen.StatusMessage = updateScreenDto.StatusMessage ?? string.Empty;
+                screen.MACAddress = updateScreenDto.MACAddress ?? string.Empty;
 
                 _context.Screens.Update(screen);
                 await _context.SaveChangesAsync();
@@ -186,45 +331,80 @@ namespace TheWebApplication.Controllers
                     Name = screen.Name,
                     LocationId = screen.LocationId,
                     AgencyId = screen.AgencyId,
-                    ScreenType = screen.ScreenType,
+                    DepartmentId = screen.DepartmentId,
+                    AdminId = screen.AdminId,
+                    ScreenType = screen.ScreenType ?? string.Empty,
+                    IsOnline = screen.IsOnline,
+                    StatusMessage = screen.StatusMessage ?? string.Empty,
+                    MACAddress = screen.MACAddress ?? string.Empty,
                     LastUpdated = screen.LastUpdated,
                     LastCheckedIn = screen.LastCheckedIn,
-                    IsOnline = screen.IsOnline,
-                    StatusMessage = screen.StatusMessage,
-                    MACAddress = screen.MACAddress,
-                    LocationName = screen.Location?.Name,
-                    DepartmentName = screen.Department?.Name,
-                    AgencyName = screen.Agency?.Name
+                    LocationName = screen.Location?.Name ?? string.Empty,
+                    DepartmentName = screen.Department?.Name ?? string.Empty,
+                    AgencyName = screen.Agency?.Name ?? string.Empty
                 };
 
-                return Ok(screenDto);
+                return Ok(new ApiResponse<ScreenDto>
+                {
+                    Success = true,
+                    Message = "Screen updated successfully",
+                    Data = screenDto
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in UpdateScreen", ex);
-                return StatusCode(500, "Internal server error.");
+                var response = new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Internal server error",
+                    Data = default
+                };
+                response.Errors.Add(ex.Message);
+                return StatusCode(500, response);
             }
         }
 
         // DELETE: api/screen/{id}
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteScreen(int id)
+        public async Task<ActionResult<ApiResponse<bool>>> DeleteScreen(int id)
         {
             try
             {
                 var screen = await _context.Screens.FindAsync(id);
                 if (screen == null)
-                    return NotFound($"Screen with ID {id} not found.");
+                {
+                    var notFoundResponse = new ApiResponse<bool>
+                    {
+                        Success = false,
+                        Message = $"Screen with ID {id} not found",
+                        Data = false
+                    };
+                    notFoundResponse.Errors.Add($"Screen with ID {id} not found");
+                    return NotFound(notFoundResponse);
+                }
 
                 _context.Screens.Remove(screen);
                 await _context.SaveChangesAsync();
 
-                return NoContent();
+                return Ok(new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = "Screen deleted successfully",
+                    Data = true
+                });
             }
             catch (Exception ex)
             {
                 await LogErrorToDatabaseAsync("Error in DeleteScreen", ex);
-                return StatusCode(500, "Internal server error.");
+                var response = new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Internal server error",
+                    Data = false
+                };
+                response.Errors.Add(ex.Message);
+                return StatusCode(500, response);
             }
         }
 

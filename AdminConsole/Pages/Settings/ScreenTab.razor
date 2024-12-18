@@ -1,10 +1,12 @@
-@using AdminConsole.Services
+@using AdminConsole.IService
 @using ClassLibrary.DtoModels.Common
-@using ClassLibrary.Models
-@using Microsoft.Extensions.Options
+@using ClassLibrary.DtoModels.Screen
+@using ClassLibrary.DtoModels.Department
+@using ClassLibrary.DtoModels.Location
+@using ClassLibrary.DtoModels.Agency
 @inject HttpClient Http
-@inject IOptions<ApiSettings> ApiSettings
 @inject IJSRuntime JSRuntime
+@inject IScreenService ScreenService
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4>Screen Management</h4>
@@ -18,32 +20,32 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Description</th>
                 <th>Location</th>
                 <th>Department</th>
                 <th>Agency</th>
-                <th>Type</th>
+                <th>Screen Type</th>
                 <th>Status</th>
-                <th>Last Updated</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            @if (screens != null)
+            @if (screens?.Any() == true)
             {
                 @foreach (var screen in screens)
                 {
                     <tr>
                         <td>@screen.Name</td>
-                        <td>@screen.Location?.Name</td>
-                        <td>@screen.Department?.Name</td>
-                        <td>@(screen.Agency?.Name ?? "N/A")</td>
+                        <td>@screen.Description</td>
+                        <td>@screen.LocationName</td>
+                        <td>@screen.DepartmentName</td>
+                        <td>@screen.AgencyName</td>
                         <td>@screen.ScreenType</td>
                         <td>
                             <span class="badge @(screen.IsOnline ? "bg-success" : "bg-danger")">
                                 @(screen.IsOnline ? "Online" : "Offline")
                             </span>
                         </td>
-                        <td>@screen.LastUpdated.ToLocalTime().ToString("g")</td>
                         <td>
                             <button class="btn btn-sm btn-primary me-2" @onclick="() => ShowModal(screen)">
                                 <span class="oi oi-pencil"></span>
@@ -65,11 +67,11 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(editingScreen?.Id > 0 ? "Edit" : "Add") Screen</h5>
+                    <h5 class="modal-title">@(editingScreen.Id > 0 ? "Edit" : "Add") Screen</h5>
                     <button type="button" class="btn-close" @onclick="HideModal"></button>
                 </div>
                 <div class="modal-body">
-                    <EditForm Model="@editingScreen" OnValidSubmit="HandleSubmit">
+                    <EditForm Model="@editingScreen" OnValidSubmit="@HandleSubmit">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 
@@ -80,55 +82,54 @@
                         </div>
 
                         <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea @bind-Value="editingScreen.Description" class="form-control" />
+                            <ValidationMessage For="@(() => editingScreen.Description)" />
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label">Location</label>
                             <InputSelect @bind-Value="editingScreen.LocationId" class="form-select" @onchange="LocationChanged">
-                                <option value="">Select Location</option>
-                                @if (locations != null)
+                                <option value="0">Select Location</option>
+                                @foreach (var location in locations)
                                 {
-                                    @foreach (var location in locations)
-                                    {
-                                        <option value="@location.Id">@location.Name</option>
-                                    }
+                                    <option value="@location.Id">@location.Name</option>
                                 }
                             </InputSelect>
+                            <ValidationMessage For="@(() => editingScreen.LocationId)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <InputSelect @bind-Value="editingScreen.DepartmentId" class="form-select" @onchange="DepartmentChanged">
+                                <option value="0">Select Department</option>
+                                @foreach (var department in departments)
+                                {
+                                    <option value="@department.Id">@department.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => editingScreen.DepartmentId)" />
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Agency</label>
-                            <InputSelect @bind-Value="editingScreen.AgencyId" class="form-select" @onchange="AgencyChanged">
-                                <option value="">Select Agency</option>
-                                @if (filteredAgencies != null)
+                            <InputSelect @bind-Value="editingScreen.AgencyId" class="form-select">
+                                <option value="0">Select Agency</option>
+                                @foreach (var agency in filteredAgencies)
                                 {
-                                    @foreach (var agency in filteredAgencies)
-                                    {
-                                        <option value="@agency.Id">@agency.Name</option>
-                                    }
+                                    <option value="@agency.Id">@agency.Name</option>
                                 }
                             </InputSelect>
                             <ValidationMessage For="@(() => editingScreen.AgencyId)" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Department</label>
-                            <InputSelect @bind-Value="editingScreen.DepartmentId" class="form-select">
-                                <option value="">Select Department</option>
-                                @if (filteredDepartments != null)
-                                {
-                                    @foreach (var dept in filteredDepartments)
-                                    {
-                                        <option value="@dept.Id">@dept.Name</option>
-                                    }
-                                }
-                            </InputSelect>
-                        </div>
-
-                        <div class="mb-3">
                             <label class="form-label">Screen Type</label>
                             <InputSelect @bind-Value="editingScreen.ScreenType" class="form-select">
-                                <option value="">Select Type</option>
-                                <option value="TV">TV</option>
+                                <option value="">Select Screen Type</option>
+                                <option value="LCD">LCD</option>
                                 <option value="LED">LED</option>
-                                <option value="Monitor">Monitor</option>
+                                <option value="Projector">Projector</option>
                             </InputSelect>
                             <ValidationMessage For="@(() => editingScreen.ScreenType)" />
                         </div>
@@ -136,6 +137,12 @@
                         <div class="mb-3">
                             <label class="form-label">MAC Address</label>
                             <InputText @bind-Value="editingScreen.MACAddress" class="form-control" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="statusMessage">Status Message</label>
+                            <InputText id="statusMessage" class="form-control" @bind-Value="editingScreen.StatusMessage" />
+                            <ValidationMessage For="@(() => editingScreen.StatusMessage)" />
                         </div>
 
                         <div class="modal-footer">
@@ -147,176 +154,169 @@
             </div>
         </div>
     </div>
-    <div class="modal-backdrop fade show"></div>
 }
 
 @code {
     private bool showModal;
-    private Screen editingScreen = new();
-    private List<Screen> screens = new();
-    private List<Location> locations = new();
-    private List<Agency> agencies = new();
-    private List<Agency> filteredAgencies = new();
-    private List<Department> departments = new();
-    private List<Department> filteredDepartments = new();
+    private ScreenDto editingScreen = new();
+    private List<ScreenDto> screens = new();
+    private List<LocationDto> locations = new();
+    private List<DepartmentDto> departments = new();
+    private List<AgencyDto> agencies = new();
+    private List<AgencyDto> filteredAgencies = new();
 
     protected override async Task OnInitializedAsync()
     {
         await LoadLocations();
-        await LoadAgencies();
         await LoadDepartments();
+        await LoadAgencies();
         await LoadScreens();
-    }
-
-    private async Task LoadScreens()
-    {
-        try
-        {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Screen>>>("/api/screens");
-            if (response?.Success == true)
-            {
-                screens = response.Data;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading screens: {ex}");
-        }
     }
 
     private async Task LoadLocations()
     {
-        try
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<LocationDto>>>("/api/location");
+        if (response?.Success == true)
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Location>>>("/api/locations");
-            if (response?.Success == true)
-            {
-                locations = response.Data;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading locations: {ex}");
-        }
-    }
-
-    private async Task LoadAgencies()
-    {
-        try
-        {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Agency>>>("/api/agencies");
-            if (response?.Success == true)
-            {
-                agencies = response.Data;
-                filteredAgencies = agencies;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading agencies: {ex}");
+            locations = response.Data ?? new();
         }
     }
 
     private async Task LoadDepartments()
     {
-        try
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<DepartmentDto>>>("/api/department");
+        if (response?.Success == true)
         {
-            var response = await Http.GetFromJsonAsync<ApiResponse<List<Department>>>("/api/departments");
-            if (response?.Success == true)
-            {
-                departments = response.Data;
-                filteredDepartments = departments;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading departments: {ex}");
+            departments = response.Data ?? new();
         }
     }
 
-    private void LocationChanged(ChangeEventArgs e)
+    private async Task LoadAgencies()
     {
-        if (int.TryParse(e.Value?.ToString(), out int locationId))
+        var response = await Http.GetFromJsonAsync<ApiResponse<List<AgencyDto>>>("/api/agency");
+        if (response?.Success == true)
         {
-            filteredAgencies = agencies?.Where(a => a.LocationId == locationId).ToList() ?? new List<Agency>();
-            editingScreen.AgencyId = 0;
-            editingScreen.DepartmentId = null;
-            filteredDepartments = new List<Department>();
+            agencies = response.Data ?? new();
+            filteredAgencies = agencies;
+        }
+    }
+
+    private async Task LoadScreens()
+    {
+        var response = await ScreenService.GetAllAsync();
+        if (response.Success)
+        {
+            screens = response.Data ?? new();
+        }
+    }
+
+    private void ShowModal(ScreenDto? screen = null)
+    {
+        if (screen != null)
+        {
+            editingScreen = new ScreenDto
+            {
+                Id = screen.Id,
+                Name = screen.Name,
+                Description = screen.Description,
+                LocationId = screen.LocationId,
+                DepartmentId = screen.DepartmentId,
+                AgencyId = screen.AgencyId,
+                ScreenType = screen.ScreenType,
+                MACAddress = screen.MACAddress,
+                IsOnline = screen.IsOnline,
+                StatusMessage = screen.StatusMessage
+            };
+
+            // Filter agencies based on location
+            if (screen.LocationId > 0)
+            {
+                filteredAgencies = agencies.Where(a => a.LocationId == screen.LocationId).ToList();
+            }
+        }
+        else
+        {
+            editingScreen = new ScreenDto();
+            filteredAgencies = agencies;
+        }
+
+        showModal = true;
+    }
+
+    private void LocationChanged()
+    {
+        editingScreen.DepartmentId = 0;
+        editingScreen.AgencyId = 0;
+        
+        if (editingScreen.LocationId > 0)
+        {
+            filteredAgencies = agencies.Where(a => a.LocationId == editingScreen.LocationId).ToList();
         }
         else
         {
             filteredAgencies = agencies;
-            filteredDepartments = departments;
-        }
-    }
-
-    private void AgencyChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out int agencyId))
-        {
-            filteredDepartments = departments?
-                .Where(d => d.AgencyId == agencyId && d.LocationId == editingScreen.LocationId)
-                .ToList() ?? new List<Department>();
-            editingScreen.DepartmentId = null;
-        }
-        else
-        {
-            filteredDepartments = departments?
-                .Where(d => d.LocationId == editingScreen.LocationId)
-                .ToList() ?? new List<Department>();
-        }
-    }
-
-    private void ShowModal(Screen? screen = null)
-    {
-        editingScreen = screen != null ? new Screen
-        {
-            Id = screen.Id,
-            Name = screen.Name,
-            LocationId = screen.LocationId,
-            AgencyId = screen.AgencyId,
-            DepartmentId = screen.DepartmentId,
-            ScreenType = screen.ScreenType,
-            MACAddress = screen.MACAddress
-        } : new Screen();
-
-        if (screen?.LocationId != null)
-        {
-            filteredAgencies = agencies?
-                .Where(a => a.LocationId == screen.LocationId)
-                .ToList() ?? new List<Agency>();
-
-            filteredDepartments = departments?
-                .Where(d => d.LocationId == screen.LocationId && d.AgencyId == screen.AgencyId)
-                .ToList() ?? new List<Department>();
         }
         
-        showModal = true;
+        StateHasChanged();
+    }
+
+    private void DepartmentChanged()
+    {
+        editingScreen.AgencyId = 0;
+        StateHasChanged();
     }
 
     private void HideModal()
     {
         showModal = false;
         editingScreen = new();
-        filteredAgencies = agencies;
-        filteredDepartments = departments;
     }
 
     private async Task HandleSubmit()
     {
         try
         {
-            HttpResponseMessage response;
+            // Set default status message if none provided
+            if (string.IsNullOrEmpty(editingScreen.StatusMessage))
+            {
+                editingScreen.StatusMessage = editingScreen.IsOnline ? "Online" : "Offline";
+            }
+
+            ApiResponse<ScreenDto> response;
             if (editingScreen.Id == 0)
             {
-                response = await Http.PostAsJsonAsync("/api/screens", editingScreen);
+                var createDto = new CreateScreenDto
+                {
+                    Name = editingScreen.Name,
+                    Description = editingScreen.Description,
+                    LocationId = editingScreen.LocationId.ToString(),
+                    AgencyId = editingScreen.AgencyId.ToString(),
+                    DepartmentId = editingScreen.DepartmentId.ToString(),
+                    ScreenType = editingScreen.ScreenType,
+                    IsOnline = editingScreen.IsOnline,
+                    StatusMessage = editingScreen.StatusMessage,
+                    MACAddress = editingScreen.MACAddress
+                };
+                response = await ScreenService.CreateAsync(createDto);
             }
             else
             {
-                response = await Http.PutAsJsonAsync($"/api/screens/{editingScreen.Id}", editingScreen);
+                var updateDto = new UpdateScreenDto
+                {
+                    Name = editingScreen.Name,
+                    Description = editingScreen.Description,
+                    LocationId = editingScreen.LocationId.ToString(),
+                    AgencyId = editingScreen.AgencyId.ToString(),
+                    DepartmentId = editingScreen.DepartmentId.ToString(),
+                    ScreenType = editingScreen.ScreenType,
+                    IsOnline = editingScreen.IsOnline,
+                    StatusMessage = editingScreen.StatusMessage,
+                    MACAddress = editingScreen.MACAddress
+                };
+                response = await ScreenService.UpdateAsync(editingScreen.Id, updateDto);
             }
 
-            if (response.IsSuccessStatusCode)
+            if (response.Success)
             {
                 await LoadScreens();
                 HideModal();
@@ -330,22 +330,13 @@
 
     private async Task DeleteScreen(int id)
     {
-        if (JSRuntime is null) return;
-        
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "Are you sure you want to delete this screen?" });
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this screen?");
         if (!confirmed) return;
 
-        try
+        var response = await ScreenService.DeleteAsync(id);
+        if (response.Success)
         {
-            var response = await Http.DeleteAsync($"/api/screens/{id}");
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadScreens();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error deleting screen: {ex}");
+            await LoadScreens();
         }
     }
 } 

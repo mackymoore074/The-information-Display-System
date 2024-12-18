@@ -5,24 +5,27 @@ namespace ClassLibrary.DtoModels.Screen
     public class CreateScreenDto
     {
         [Required]
-        [StringLength(200)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
-        [StringLength(500)]
-        public string Description { get; set; }
-        
-        [Required]
-        public int DepartmentId { get; set; }
-        
-        [Required]
-        public int AgencyId { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Required]
-        public int LocationId { get; set; }
+        public string LocationId { get; set; } = string.Empty;
 
-        public string ScreenType { get; set; }
+        [Required]
+        public string AgencyId { get; set; } = string.Empty;
+
+        public string? DepartmentId { get; set; }
+
+        public string AdminId { get; set; } = string.Empty;
+
+        public string ScreenType { get; set; } = string.Empty;
+
         public bool IsOnline { get; set; }
-        public string StatusMessage { get; set; }
-        public string MACAddress { get; set; }
+
+        [Required]
+        public string StatusMessage { get; set; } = string.Empty;
+
+        public string MACAddress { get; set; } = string.Empty;
     }
 }

@@ -54,6 +54,14 @@ builder.Services.AddScoped<IDepartmentService>(sp =>
     return new DepartmentService(httpClient, logger, localStorage);
 });
 
+builder.Services.AddScoped<IScreenService>(sp => 
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var logger = sp.GetRequiredService<ILogger<ScreenService>>();
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    return new ScreenService(httpClient, logger, localStorage);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

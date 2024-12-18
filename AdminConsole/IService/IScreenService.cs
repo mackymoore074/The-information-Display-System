@@ -6,10 +6,10 @@ namespace AdminConsole.IService
 {
     public interface IScreenService
     {
-        Task<ApiResponse<List<ScreenDto>>> GetScreensAsync();
-        Task<ApiResponse<ScreenDto>> GetScreenByIdAsync(int id);
-        Task<ApiResponse<ScreenDto>> CreateScreenAsync(CreateScreenDto createScreenDto);
-        Task<ApiResponse<ScreenDto>> UpdateScreenAsync(int id, UpdateScreenDto updateScreenDto);
-        Task<ApiResponse<object>> DeleteScreenAsync(int id);
+        Task<ApiResponse<List<ScreenDto>>> GetAllAsync();
+        Task<ApiResponse<ScreenDto>> GetByIdAsync(int id);
+        Task<ApiResponse<ScreenDto>> CreateAsync(CreateScreenDto createScreenDto);
+        Task<ApiResponse<ScreenDto>> UpdateAsync(int id, UpdateScreenDto updateScreenDto);
+        Task<ApiResponse<bool>> DeleteAsync(int id);
     }
 } 

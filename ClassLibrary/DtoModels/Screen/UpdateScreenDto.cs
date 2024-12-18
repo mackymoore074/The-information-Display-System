@@ -4,25 +4,29 @@ namespace ClassLibrary.DtoModels.Screen
 {
     public class UpdateScreenDto
     {
-        [Required]
-        [StringLength(200)]
+        [Required(ErrorMessage = "Name is required")]
         public string Name { get; set; }
 
-        [StringLength(500)]
+        [Required(ErrorMessage = "Description is required")]
         public string Description { get; set; }
-        
-        [Required]
-        public int DepartmentId { get; set; }
-        
-        [Required]
-        public int AgencyId { get; set; }
 
-        [Required]
-        public int LocationId { get; set; }
+        [Required(ErrorMessage = "Department is required")]
+        public string DepartmentId { get; set; }
 
+        [Required(ErrorMessage = "Agency is required")]
+        public string AgencyId { get; set; }
+
+        [Required(ErrorMessage = "Location is required")]
+        public string LocationId { get; set; }
+
+        public int AdminId { get; set; }
+
+        [Required(ErrorMessage = "Screen Type is required")]
         public string ScreenType { get; set; }
+
+        public string MACAddress { get; set; }
+
         public bool IsOnline { get; set; }
         public string StatusMessage { get; set; }
-        public string MACAddress { get; set; }
     }
 }
