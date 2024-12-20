@@ -35,7 +35,7 @@ namespace TheWebApplication.Controllers
                         Id = d.Id,
                         Name = d.Name,
                         Description = d.Description,
-                        AgencyId = d.AgencyId,
+                        AgencyId = d.AgencyId ?? 0,
                         LocationId = d.LocationId,
                         AgencyName = d.Agency.Name,
                         LocationName = d.Location.Name,
@@ -88,7 +88,7 @@ namespace TheWebApplication.Controllers
                     {
                         Success = false,
                         Message = $"Department with ID {id} not found.",
-                        Data = null
+                        Data = default
                     });
                 }
 
@@ -97,7 +97,7 @@ namespace TheWebApplication.Controllers
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    AgencyId = department.AgencyId,
+                    AgencyId = department.AgencyId ?? 0,
                     LocationId = department.LocationId,
                     AgencyName = department.Agency.Name,
                     LocationName = department.Location.Name,
@@ -145,8 +145,8 @@ namespace TheWebApplication.Controllers
                 {
                     Name = createDepartmentDto.Name,
                     Description = createDepartmentDto.Description,
-                    AgencyId = createDepartmentDto.AgencyId,
-                    LocationId = createDepartmentDto.LocationId,
+                    AgencyId = (int)createDepartmentDto.AgencyId,
+                    LocationId = (int)createDepartmentDto.LocationId,
                     DateCreated = DateTime.UtcNow
                 };
 
@@ -158,7 +158,7 @@ namespace TheWebApplication.Controllers
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    AgencyId = department.AgencyId,
+                    AgencyId = department.AgencyId ?? 0,
                     LocationId = department.LocationId,
                     AgencyName = (await _context.Agencies.FindAsync(department.AgencyId))?.Name,
                     LocationName = (await _context.Locations.FindAsync(department.LocationId))?.Name,
@@ -206,14 +206,14 @@ namespace TheWebApplication.Controllers
                     {
                         Success = false,
                         Message = $"Department with ID {id} not found.",
-                        Data = null
+                        Data = default
                     });
                 }
 
                 department.Name = updateDepartmentDto.Name;
                 department.Description = updateDepartmentDto.Description;
-                department.AgencyId = updateDepartmentDto.AgencyId;
-                department.LocationId = updateDepartmentDto.LocationId;
+                department.AgencyId = (int)updateDepartmentDto.AgencyId;
+                department.LocationId = (int)updateDepartmentDto.LocationId;
 
                 _context.Entry(department).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
@@ -223,7 +223,7 @@ namespace TheWebApplication.Controllers
                     Id = department.Id,
                     Name = department.Name,
                     Description = department.Description,
-                    AgencyId = department.AgencyId,
+                    AgencyId = department.AgencyId ?? 0,
                     LocationId = department.LocationId,
                     AgencyName = (await _context.Agencies.FindAsync(department.AgencyId))?.Name,
                     LocationName = (await _context.Locations.FindAsync(department.LocationId))?.Name,

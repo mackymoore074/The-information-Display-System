@@ -1,18 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ClassLibrary.Models;
 
 namespace ClassLibrary.Models
 {
     public class ClassDBContext : DbContext
     {
+        public ClassDBContext(DbContextOptions<ClassDBContext> options) : base(options) { }
+        public ClassDBContext() { }
 
-        public ClassDBContext(DbContextOptions<ClassDBContext> options)
-            : base(options)
-        {
-        }
-        public ClassDBContext()
-        {
-
-        }
         public DbSet<Screen> Screens { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Location> Locations { get; set; }
@@ -30,52 +25,17 @@ namespace ClassLibrary.Models
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configure the one-to-one relationship between Admin and Location
-            modelBuilder.Entity<Admin>()
-                .HasOne(a => a.Location) // Admin has one Location
-                .WithOne(l => l.Admin)    // Location has one Admin
-                .HasForeignKey<Admin>(a => a.LocationId);
-            // Configure the one-to-one relationship between Admin and Screen
-            modelBuilder.Entity<Admin>()
-                .HasOne(a => a.Screen) // Admin has one Screen
-                .WithOne(s => s.Admin)  // Screen has one Admin
-                .HasForeignKey<Screen>(s => s.AdminId);
-
-            modelBuilder.Entity<Admin>()
-                  .HasOne(a => a.Agency)
-                      .WithOne(a => a.Admin)
-                      .HasForeignKey<Admin>(a => a.AgencyId);
-            // Agency-Location relationship
+            // Agency relationships - combined into one section
             modelBuilder.Entity<Agency>()
                 .HasOne(a => a.Location)
                 .WithMany()
                 .HasForeignKey(a => a.LocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // AdminDepartmentLocation configuration
-            modelBuilder.Entity<AdminDepartmentLocation>()
-                .HasOne(adl => adl.Admin)
-                .WithMany(a => a.AdminDepartmentLocations)
-                .HasForeignKey(adl => adl.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<AdminDepartmentLocation>()
-                .HasOne(adl => adl.Department)
-                .WithMany(d => d.AdminDepartmentLocations)
-                .HasForeignKey(adl => adl.DepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<AdminDepartmentLocation>()
-                .HasOne(adl => adl.Location)
-                .WithMany()
-                .HasForeignKey(adl => adl.LocationId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Department configuration
-            // Configure Department ↔ Agency relationship
+            // Department relationships
             modelBuilder.Entity<Department>()
                 .HasOne(d => d.Agency)
-                .WithMany(a => a.Departments)
+                .WithMany()
                 .HasForeignKey(d => d.AgencyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -83,81 +43,66 @@ namespace ClassLibrary.Models
                 .HasOne(d => d.Location)
                 .WithMany(l => l.Departments)
                 .HasForeignKey(d => d.LocationId)
-                .IsRequired()
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Employee-Department relationship
-            modelBuilder.Entity<Employee>()
-                 .HasOne(e => e.Department)
-                 .WithMany(d => d.Employees)
-                 .HasForeignKey(e => e.DepartmentId)
-                  .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Agency>()
-                  .HasOne(a => a.Admin)
-                  .WithOne(ad => ad.Agency)
-                    .HasForeignKey<Agency>(a => a.AdminId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-            // Configure MenuItems relationships
-            // MenuItems ↔ Agency
-            modelBuilder.Entity<MenuItems>()
-                .HasOne(m => m.Agency)
-                .WithMany(a => a.MenuItems)
-                .HasForeignKey(m => m.AgencyId)
+            // Screen relationships
+            modelBuilder.Entity<Screen>()
+                .HasOne(s => s.Location)
+                .WithMany(l => l.Screens)
+                .HasForeignKey(s => s.LocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // MenuItems ↔ Admin
-            modelBuilder.Entity<MenuItems>()
-                .HasOne(m => m.Admin)
-                .WithMany(a => a.MenuItems)
-                .HasForeignKey(m => m.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Configure the NewsItem-Admin relationship
+            // NewsItem relationships
             modelBuilder.Entity<NewsItem>()
                 .HasOne(n => n.Admin)
                 .WithMany(a => a.NewsItems)
                 .HasForeignKey(n => n.AdminId)
-                .OnDelete(DeleteBehavior.Restrict); // Avoid cascading delete
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Configure relationships between NewsItems and related entities
-            modelBuilder.Entity<NewsItem>()
-                .HasMany(n => n.NewsItemAgencies)
-                .WithOne(na => na.NewsItem)
-                .HasForeignKey(na => na.NewsItemId);
+            // NewsItem junction tables
+            modelBuilder.Entity<NewsItemAgency>()
+                .HasKey(na => new { na.NewsItemId, na.AgencyId });
 
-            modelBuilder.Entity<NewsItem>()
-                .HasMany(n => n.NewsItemScreens)
-                .WithOne(ns => ns.NewsItem)
-                .HasForeignKey(ns => ns.NewsItemId);
+            modelBuilder.Entity<NewsItemDepartment>()
+                .HasKey(nd => new { nd.NewsItemId, nd.DepartmentId });
 
-            modelBuilder.Entity<NewsItem>()
-                .HasMany(n => n.NewsItemDepartments)
-                .WithOne(nd => nd.NewsItem)
-                .HasForeignKey(nd => nd.NewsItemId);
+            modelBuilder.Entity<NewsItemLocation>()
+                .HasKey(nl => new { nl.NewsItemId, nl.LocationId });
 
-            modelBuilder.Entity<NewsItem>()
-                .HasMany(n => n.NewsItemLocations)
-                .WithOne(nl => nl.NewsItem)
-                .HasForeignKey(nl => nl.NewsItemId);
+            modelBuilder.Entity<NewsItemScreen>()
+                .HasKey(ns => new { ns.NewsItemId, ns.ScreenId });
 
-            // Configure allowed IP addresses
+            // AllowedIpAddress configuration
             modelBuilder.Entity<AllowedIpAddress>()
-                .HasKey(aip => aip.IpAddress);
+                .HasKey(a => a.IpAddress);
 
-            // Hardcode the single Admin into the database
+            // Add this Admin-Agency relationship configuration
+            modelBuilder.Entity<Agency>()
+                .HasOne(a => a.Admin)
+                .WithMany(admin => admin.Agencies)
+                .HasForeignKey(a => a.AdminId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Add this Admin-Location relationship configuration
+            modelBuilder.Entity<Admin>()
+                .HasOne(a => a.Location)
+                .WithMany()
+                .HasForeignKey(a => a.LocationId)
+                .IsRequired(false) 
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Seed initial admin
             modelBuilder.Entity<Admin>().HasData(
                 new Admin
                 {
                     Id = 1,
                     FirstName = "John",
                     LastName = "Doe",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("adminpassword123"),  // Store the password hash, not plaintext
                     Email = "admin@company.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("adminpassword123"),
+                    Role = Role.SuperAdmin,
                     DateCreated = DateTime.UtcNow,
-                    LastLogin = DateTime.UtcNow,
-                    Role = Role.Admin,  // Assuming 'Role.Admin' is an enum for admin role
+                    LastLogin = DateTime.UtcNow
                 }
             );
         }

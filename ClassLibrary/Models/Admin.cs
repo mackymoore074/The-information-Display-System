@@ -20,10 +20,12 @@ namespace ClassLibrary.Models
         [EmailAddress]
         public string Email { get; set; }
 
-        public string PasswordHash { get; set; } // Ensure this field is always provided
+        [Required]
+        public string PasswordHash { get; set; }
 
         public Role Role { get; set; }
 
+        // Nullable relationships
         public int? AgencyId { get; set; }
         public Agency? Agency { get; set; }
 
@@ -33,38 +35,27 @@ namespace ClassLibrary.Models
         public int? LocationId { get; set; }
         public Location? Location { get; set; }
 
-        public int? ScreenId { get; set; } //
+        public int? ScreenId { get; set; }
         public Screen? Screen { get; set; }
 
         public DateTime DateCreated { get; set; }
         public DateTime LastLogin { get; set; }
 
-        // Navigation properties
-        public ICollection<AdminDepartmentLocation> AdminDepartmentLocations { get; set; }
-        public ICollection<MenuItems> MenuItems { get; set; }
-        public ICollection<NewsItem> NewsItems { get; set; }
-        public ICollection<Employee> Employees { get; set; }
-    }
-    public class AdminDepartmentLocation
-    {
-        [Key]
-        public int Id { get; set; }
-        public int AdminId { get; set; }
-        public Admin Admin { get; set; }
-        public int DepartmentId { get; set; }
-        public Department Department { get; set; }
-        public int LocationId { get; set; }
-        public Location Location { get; set; }
-        public DateTime AssignedDate { get; set; }
+        // Collections
+        public ICollection<MenuItems> MenuItems { get; set; } = new List<MenuItems>();
+        public ICollection<NewsItem> NewsItems { get; set; } = new List<NewsItem>();
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
+        // Change this to ICollection to indicate one-to-many relationship
+        public ICollection<Agency> Agencies { get; set; } = new List<Agency>();
     }
 
-    // Enum for Role with explicitly set integer values
     public enum Role
     {
         [Display(Name = "Super Administrator")]
-        SuperAdmin = 1, // Super admin user
+        SuperAdmin = 1,
+        
         [Display(Name = "Administrator")]
-        Admin = 2 // Admin user
+        Admin = 2
     }
 }
