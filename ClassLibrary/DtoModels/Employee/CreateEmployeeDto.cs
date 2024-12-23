@@ -4,27 +4,28 @@ namespace ClassLibrary.DtoModels.Employee
 {
     public class CreateEmployeeDto
     {
-        [Required(ErrorMessage = "First name is required")]
+        [Required]
         [StringLength(100)]
         public string FirstName { get; set; }
 
-        [Required(ErrorMessage = "Last name is required")]
+        [Required]
         [StringLength(100)]
         public string LastName { get; set; }
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email address")]
+        [Required]
+        [EmailAddress]
         [StringLength(100)]
         public string Email { get; set; }
 
-        [Required(ErrorMessage = "Employee ID is required")]
-        [StringLength(20)]
-        public string EmployeeId { get; set; }
-
-        [Required(ErrorMessage = "Department is required")]
+        [Required]
         public int DepartmentId { get; set; }
 
-        [Required(ErrorMessage = "Location is required")]
+        [Required]
         public int LocationId { get; set; }
+
+        [Required]
+        public int AdminId { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 } 

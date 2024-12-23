@@ -129,7 +129,7 @@ namespace TheWebApplication.Controllers
                 int currentAdminId = GetCurrentAdminId();
 
                 // Check if employee ID already exists
-                if (await _context.Employees.AnyAsync(e => e.EmployeeId == createDto.EmployeeId))
+                if (await _context.Employees.AnyAsync(e => e.Email == createDto.Email))
                 {
                     return BadRequest(new ApiResponse<Employee>
                     {
@@ -144,7 +144,6 @@ namespace TheWebApplication.Controllers
                     FirstName = createDto.FirstName,
                     LastName = createDto.LastName,
                     Email = createDto.Email,
-                    EmployeeId = createDto.EmployeeId,
                     DepartmentId = createDto.DepartmentId,
                     LocationId = createDto.LocationId,
                     AdminId = currentAdminId,
@@ -194,7 +193,7 @@ namespace TheWebApplication.Controllers
                 }
 
                 // Check if updated employee ID conflicts with existing one
-                if (await _context.Employees.AnyAsync(e => e.EmployeeId == updateDto.EmployeeId && e.Id != id))
+                if (await _context.Employees.AnyAsync(e => e.Email == updateDto.Email && e.Id != id))
                 {
                     return BadRequest(new ApiResponse<Employee>
                     {
@@ -207,7 +206,6 @@ namespace TheWebApplication.Controllers
                 employee.FirstName = updateDto.FirstName;
                 employee.LastName = updateDto.LastName;
                 employee.Email = updateDto.Email;
-                employee.EmployeeId = updateDto.EmployeeId;
                 employee.DepartmentId = updateDto.DepartmentId;
                 employee.LocationId = updateDto.LocationId;
                 employee.LastUpdated = DateTime.UtcNow;

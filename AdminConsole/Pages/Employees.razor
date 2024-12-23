@@ -1,142 +1,127 @@
 @page "/employees"
+@using AdminConsole.IService
+@using AdminConsole.Services
 @using ClassLibrary.Models
 @using ClassLibrary.DtoModels.Employee
-@inject IHttpClientFactory ClientFactory
-@inject IJSRuntime JsRuntime
-@attribute [Authorize]
+@using ClassLibrary.DtoModels.Department
+@using ClassLibrary.DtoModels.Location
+@using ClassLibrary.DtoModels.Common
+@inject IEmployeeService EmployeeService
+@inject IDepartmentService DepartmentService
+@inject ILocationService LocationService
+@inject ILogger<Employees> Logger
 
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="card-title">Employees</h5>
-                <button class="btn btn-primary" @onclick="OpenCreateDialog">
-                    <i class="bi bi-plus"></i> Add Employee
-                </button>
-            </div>
+<h3>Employees</h3>
 
-            @if (employees == null)
-            {
-                <div class="d-flex justify-content-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" placeholder="Search..." 
-                               @bind="searchString" @bind:event="oninput" />
-                    </div>
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Employee ID</th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Department</th>
-                                <th>Location</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var employee in employees)
-                            {
-                                <tr>
-                                    <td>@employee.EmployeeId</td>
-                                    <td>@($"{employee.FirstName} {employee.LastName}")</td>
-                                    <td>@employee.Email</td>
-                                    <td>@(employee.Department?.Name ?? "-")</td>
-                                    <td>@(employee.Location?.Name ?? "-")</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" 
-                                                @onclick="() => OpenEditDialog(employee)">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" 
-                                                @onclick="() => OpenDeleteDialog(employee)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </div>
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-primary" @onclick="() => OpenModal()">Add Employee</button>
 </div>
 
-@if (showDialog)
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Employee ID</th>
+            <th>Department</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (employees == null)
+        {
+            <tr><td colspan="6"><p>Loading...</p></td></tr>
+        }
+        else if (!employees.Any())
+        {
+            <tr><td colspan="6"><p>No employees found.</p></td></tr>
+        }
+        else
+        {
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <td>@employee.Id</td>
+                    <td>@($"{employee.FirstName} {employee.LastName}")</td>
+                    <td>@employee.Email</td>
+                    <td>@employee.Id</td>
+                    <td>@employee.DepartmentName</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => EditEmployee(employee.Id)">Edit</button>
+                        <button class="btn btn-danger" @onclick="() => DeleteEmployee(employee.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@if (showModal)
 {
     <div class="modal fade show" style="display: block;" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@dialogTitle</h5>
-                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                    <h5 class="modal-title">Add Employee</h5>
+                    <button type="button" class="btn-close" @onclick="() => showModal = false"></button>
                 </div>
                 <div class="modal-body">
-                    <EditForm Model="@model" OnValidSubmit="SaveEmployee">
+                    <EditForm Model="@newEmployee" OnValidSubmit="CreateEmployee">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 
                         <div class="mb-3">
-                            <label class="form-label">First Name</label>
-                            <InputText class="form-control" @bind-Value="model.FirstName" />
-                            <ValidationMessage For="@(() => model.FirstName)" />
+                            <label for="firstName" class="form-label">First Name</label>
+                            <InputText id="firstName" class="form-control" @bind-Value="newEmployee.FirstName" />
+                            <ValidationMessage For="@(() => newEmployee.FirstName)" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Last Name</label>
-                            <InputText class="form-control" @bind-Value="model.LastName" />
-                            <ValidationMessage For="@(() => model.LastName)" />
+                            <label for="lastName" class="form-label">Last Name</label>
+                            <InputText id="lastName" class="form-control" @bind-Value="newEmployee.LastName" />
+                            <ValidationMessage For="@(() => newEmployee.LastName)" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <InputText class="form-control" @bind-Value="model.Email" />
-                            <ValidationMessage For="@(() => model.Email)" />
+                            <label for="email" class="form-label">Email</label>
+                            <InputText id="email" class="form-control" @bind-Value="newEmployee.Email" />
+                            <ValidationMessage For="@(() => newEmployee.Email)" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Employee ID</label>
-                            <InputText class="form-control" @bind-Value="model.EmployeeId" />
-                            <ValidationMessage For="@(() => model.EmployeeId)" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Department</label>
-                            <InputSelect class="form-select" @bind-Value="model.DepartmentId">
-                                @if (departments != null)
+                            <label for="departmentId" class="form-label">Department</label>
+                            <InputSelect id="departmentId" class="form-select" @bind-Value="newEmployee.DepartmentId">
+                                <option value="">Select Department</option>
+                                @if (departments != null && departments.Any())
                                 {
-                                    @foreach (var dept in departments)
+                                    @foreach (var department in departments)
                                     {
-                                        <option value="@dept.Id">@dept.Name</option>
+                                        <option value="@department.Id">@department.Name</option>
                                     }
                                 }
                             </InputSelect>
+                            <ValidationMessage For="@(() => newEmployee.DepartmentId)" />
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Location</label>
-                            <InputSelect class="form-select" @bind-Value="model.LocationId">
-                                @if (locations != null)
+                            <label for="locationId" class="form-label">Location</label>
+                            <InputSelect id="locationId" class="form-select" @bind-Value="newEmployee.LocationId">
+                                <option value="">Select Location</option>
+                                @if (locations != null && locations.Any())
                                 {
-                                    @foreach (var loc in locations)
+                                    @foreach (var location in locations)
                                     {
-                                        <option value="@loc.Id">@loc.Name</option>
+                                        <option value="@location.Id">@location.Name</option>
                                     }
                                 }
                             </InputSelect>
+                            <ValidationMessage For="@(() => newEmployee.LocationId)" />
                         </div>
 
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="CloseDialog">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-secondary" @onclick="() => showModal = false">Close</button>
+                            <button type="submit" class="btn btn-primary">Save Employee</button>
                         </div>
                     </EditForm>
                 </div>
@@ -147,107 +132,101 @@
 }
 
 @code {
-    private List<Employee> employees;
-    private List<Department> departments;
-    private List<Location> locations;
-    private string searchString = "";
-    private bool showDialog;
-    private string dialogTitle;
-    private CreateEmployeeDto model = new();
-    private int? editingId;
-    private HttpClient Http => ClientFactory.CreateClient();
+    private IEnumerable<EmployeeDto> employees;
+    private IEnumerable<DepartmentDto> departments;
+    private IEnumerable<LocationDto> locations;
+    private bool showModal = false;
+    private CreateEmployeeDto newEmployee = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadEmployees();
     }
 
-    private async Task LoadData()
+    private async Task OpenModal()
     {
-        try
+        await LoadDepartments();
+        await LoadLocations();
+        showModal = true;
+        StateHasChanged();
+    }
+
+    private async Task LoadEmployees()
+    {
+        var response = await EmployeeService.GetEmployeesAsync();
+        if (response.Success)
         {
-            employees = await Http.GetFromJsonAsync<List<Employee>>("api/Employee");
-            departments = await Http.GetFromJsonAsync<List<Department>>("api/Department");
-            locations = await Http.GetFromJsonAsync<List<Location>>("api/Location");
+            employees = response.Data;
+            Logger.LogInformation($"Loaded {employees.Count()} employees");
         }
-        catch (Exception ex)
+        else
         {
-            // Handle error
-            Console.WriteLine($"Error loading data: {ex.Message}");
-        }
-    }
-
-    private void OpenCreateDialog()
-    {
-        editingId = null;
-        model = new CreateEmployeeDto();
-        dialogTitle = "Create Employee";
-        showDialog = true;
-    }
-
-    private void OpenEditDialog(Employee employee)
-    {
-        editingId = employee.Id;
-        model = new CreateEmployeeDto
-        {
-            FirstName = employee.FirstName,
-            LastName = employee.LastName,
-            Email = employee.Email,
-            EmployeeId = employee.EmployeeId,
-            DepartmentId = employee.DepartmentId,
-            LocationId = employee.LocationId
-        };
-        dialogTitle = "Edit Employee";
-        showDialog = true;
-    }
-
-    private async Task OpenDeleteDialog(Employee employee)
-    {
-        if (await JsRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {employee.FirstName} {employee.LastName}?"))
-        {
-            await DeleteEmployee(employee.Id);
+            Logger.LogWarning("Failed to load employees");
+            employees = Enumerable.Empty<EmployeeDto>();
         }
     }
 
-    private async Task SaveEmployee()
+    private async Task LoadDepartments()
     {
-        try
+        var response = await DepartmentService.GetDepartmentsAsync();
+        if (response.Success)
         {
-            if (editingId.HasValue)
-            {
-                await Http.PutAsJsonAsync($"api/Employee/{editingId}", model);
-            }
-            else
-            {
-                await Http.PostAsJsonAsync("api/Employee", model);
-            }
+            departments = response.Data;
+            Logger.LogInformation($"Loaded {departments.Count()} departments");
+        }
+        else
+        {
+            Logger.LogWarning("Failed to load departments");
+            departments = Enumerable.Empty<DepartmentDto>();
+        }
+    }
 
-            await LoadData();
-            CloseDialog();
-        }
-        catch (Exception ex)
+    private async Task LoadLocations()
+    {
+        var response = await LocationService.GetLocationsAsync();
+        if (response.Success)
         {
-            // Handle error
-            Console.WriteLine($"Error saving employee: {ex.Message}");
+            locations = response.Data;
+            Logger.LogInformation($"Loaded {locations.Count()} locations");
         }
+        else
+        {
+            Logger.LogWarning("Failed to load locations");
+            locations = Enumerable.Empty<LocationDto>();
+        }
+    }
+
+    private async Task CreateEmployee()
+    {
+        newEmployee.AdminId = 1;
+
+        Logger.LogInformation($"Creating employee: FirstName={newEmployee.FirstName}, " +
+            $"LastName={newEmployee.LastName}, " +
+            $"Email={newEmployee.Email}, " +
+            $"DepartmentId={newEmployee.DepartmentId}, " +
+            $"LocationId={newEmployee.LocationId}, " +
+            $"AdminId={newEmployee.AdminId}");
+
+        var response = await EmployeeService.CreateEmployeeAsync(newEmployee);
+        if (response.Success)
+        {
+            showModal = false;
+            newEmployee = new();
+            await LoadEmployees();
+        }
+        else
+        {
+            Logger.LogWarning($"Failed to create employee: {string.Join(", ", response.Errors)}");
+        }
+    }
+
+    private async Task EditEmployee(int id)
+    {
+        // Implement edit functionality
     }
 
     private async Task DeleteEmployee(int id)
     {
-        try
-        {
-            await Http.DeleteAsync($"api/Employee/{id}");
-            await LoadData();
-        }
-        catch (Exception ex)
-        {
-            // Handle error
-            Console.WriteLine($"Error deleting employee: {ex.Message}");
-        }
-    }
-
-    private void CloseDialog()
-    {
-        showDialog = false;
+        // Implement delete functionality
     }
 } 

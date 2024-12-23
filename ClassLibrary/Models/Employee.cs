@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ClassLibrary.Models
 {
@@ -22,26 +18,27 @@ namespace ClassLibrary.Models
         [Required]
         [EmailAddress]
         [StringLength(100)]
-        public string? Email { get; set; }
+        public string Email { get; set; }
 
-        [Required]
-        [StringLength(20)]
-        public string EmployeeId { get; set; }  // Employee identification number
-
-        [Required]
         public int DepartmentId { get; set; }
-        public Department Department { get; set; }
+        public virtual Department Department { get; set; }
+
+        public int LocationId { get; set; }
+        public virtual Location Location { get; set; }
 
         [Required]
-        public int LocationId { get; set; }
-        public Location Location { get; set; }
+        public int AdminId { get; set; }
+        public virtual Admin Admin { get; set; }
 
         public DateTime DateCreated { get; set; }
         public DateTime LastUpdated { get; set; }
         public bool IsActive { get; set; }
 
-        [Required]
-        public int AdminId { get; set; }  // Admin who created/manages this employee
-        public Admin Admin { get; set; }
+        public Employee()
+        {
+            DateCreated = DateTime.UtcNow;
+            LastUpdated = DateTime.UtcNow;
+            IsActive = true;
+        }
     }
 }

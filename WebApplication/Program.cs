@@ -27,12 +27,8 @@ builder.Services.AddControllers()
 
 // Add DbContext for EF Core
 builder.Services.AddDbContext<ClassDBContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("ClassDB"),
-        sqlOptions => sqlOptions.MigrationsAssembly("ClassLibrary")) // Specify the migrations assembly
-        .EnableSensitiveDataLogging()  // Enable logging of sensitive data (e.g., values in the queries)
-        .LogTo(Console.WriteLine, LogLevel.Information); // Log to console at Information level
-});
+    options.UseSqlServer(builder.Configuration.GetConnectionString("ClassDB")));
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

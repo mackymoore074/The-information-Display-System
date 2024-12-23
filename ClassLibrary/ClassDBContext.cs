@@ -25,7 +25,8 @@ namespace ClassLibrary.Models
                 .HasOne(l => l.Admin)
                 .WithMany()
                 .HasForeignKey(l => l.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Locations_Admins_AdminId");
 
             // Agency relationships
             modelBuilder.Entity<Agency>()
@@ -38,7 +39,8 @@ namespace ClassLibrary.Models
                 .HasOne(a => a.Admin)
                 .WithMany()
                 .HasForeignKey(a => a.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Agencies_Admins_AdminId");
 
             // Department relationships
             modelBuilder.Entity<Department>()
@@ -54,17 +56,47 @@ namespace ClassLibrary.Models
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Employee relationships
-            modelBuilder.Entity<Employee>()
-                .HasOne(e => e.Department)
-                .WithMany()
-                .HasForeignKey(e => e.DepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Employee>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.FirstName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                    
+                entity.Property(e => e.LastName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                    
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                    
+                entity.Property(e => e.DateCreated)
+                    .IsRequired();
+                    
+                entity.Property(e => e.LastUpdated)
+                    .IsRequired();
+                    
+                entity.Property(e => e.IsActive)
+                    .IsRequired();
 
-            modelBuilder.Entity<Employee>()
-                .HasOne(e => e.Admin)
-                .WithMany()
-                .HasForeignKey(e => e.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Department)
+                    .WithMany()
+                    .HasForeignKey(e => e.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Location)
+                    .WithMany()
+                    .HasForeignKey(e => e.LocationId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Admin)
+                    .WithMany()
+                    .HasForeignKey(e => e.AdminId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_Employees_Admins_AdminId");
+            });
 
             // Screen relationships
             modelBuilder.Entity<Screen>()
@@ -89,7 +121,8 @@ namespace ClassLibrary.Models
                 .HasOne(s => s.Admin)
                 .WithMany()
                 .HasForeignKey(s => s.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_Screens_Admins_AdminId");
 
             // NewsItem basic configuration
             modelBuilder.Entity<NewsItem>()
@@ -99,7 +132,8 @@ namespace ClassLibrary.Models
                 .HasOne(e => e.Admin)
                 .WithMany()
                 .HasForeignKey(e => e.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_NewsItems_Admins_AdminId");
 
             // MenuItem basic configuration
             modelBuilder.Entity<MenuItem>()
@@ -109,7 +143,8 @@ namespace ClassLibrary.Models
                 .HasOne(e => e.Admin)
                 .WithMany()
                 .HasForeignKey(e => e.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_MenuItems_Admins_AdminId");
 
             // Seed initial admin
             modelBuilder.Entity<Admin>().HasData(

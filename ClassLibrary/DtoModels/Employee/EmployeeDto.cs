@@ -15,7 +15,7 @@ namespace ClassLibrary.DtoModels.Employee
         public string LastName { get; set; } // Employee's last name
 
         public string Email { get; set; } // Employee's email address
-
+        public string EmployeeId { get; set; }
         public DateTime DateCreated { get; set; } // Date when the employee was created
 
         public int AdminId { get; set; } // Name of the admin who created the employee
