@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClassLibrary.Migrations
 {
     [DbContext(typeof(ClassDBContext))]
-    [Migration("20241216202422_init")]
-    partial class init
+    [Migration("20241223100459_InitialCreate")]
+    partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -33,6 +33,9 @@ namespace ClassLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
                     b.Property<int?>("AgencyId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AgencyId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
@@ -61,6 +64,9 @@ namespace ClassLibrary.Migrations
                     b.Property<int?>("LocationId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("LocationId1")
+                        .HasColumnType("int");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -71,13 +77,18 @@ namespace ClassLibrary.Migrations
                     b.Property<int?>("ScreenId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ScreenId1")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AgencyId1");
 
                     b.HasIndex("DepartmentId");
 
-                    b.HasIndex("LocationId")
-                        .IsUnique()
-                        .HasFilter("[LocationId] IS NOT NULL");
+                    b.HasIndex("LocationId1");
+
+                    b.HasIndex("ScreenId1");
 
                     b.ToTable("Admins");
 
@@ -85,45 +96,14 @@ namespace ClassLibrary.Migrations
                         new
                         {
                             Id = 1,
-                            DateCreated = new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3731),
+                            DateCreated = new DateTime(2024, 12, 23, 10, 4, 59, 152, DateTimeKind.Utc).AddTicks(5010),
                             Email = "admin@company.com",
                             FirstName = "John",
-                            LastLogin = new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3737),
+                            LastLogin = new DateTime(2024, 12, 23, 10, 4, 59, 152, DateTimeKind.Utc).AddTicks(5010),
                             LastName = "Doe",
-                            PasswordHash = "$2a$11$vEOnG41t3HF0SoGktYLQjO3PsMl9vUnf1d4gn.R1qI5BDAPN3UUzO",
-                            Role = 2
+                            PasswordHash = "$2a$11$hpgbxtW8GWWTLGtmPS.r0OvcdFWRLSGu2rmmxn/g8eCh3p22qwZqK",
+                            Role = 1
                         });
-                });
-
-            modelBuilder.Entity("ClassLibrary.Models.AdminDepartmentLocation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<int>("AdminId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("AssignedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DepartmentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LocationId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdminId");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("LocationId");
-
-                    b.ToTable("AdminDepartmentLocation");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.Agency", b =>
@@ -135,6 +115,9 @@ namespace ClassLibrary.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
                     b.Property<int>("AdminId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AdminId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
@@ -155,27 +138,13 @@ namespace ClassLibrary.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdminId")
-                        .IsUnique();
+                    b.HasIndex("AdminId");
+
+                    b.HasIndex("AdminId1");
 
                     b.HasIndex("LocationId");
 
                     b.ToTable("Agencies");
-                });
-
-            modelBuilder.Entity("ClassLibrary.Models.AllowedIpAddress", b =>
-                {
-                    b.Property<string>("IpAddress")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("locationId")
-                        .HasColumnType("int");
-
-                    b.HasKey("IpAddress");
-
-                    b.HasIndex("locationId");
-
-                    b.ToTable("AllowedIpAddresses");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.Department", b =>
@@ -186,7 +155,8 @@ namespace ClassLibrary.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<int>("AgencyId")
+                    b.Property<int?>("AgencyId")
+                        .IsRequired()
                         .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
@@ -194,7 +164,8 @@ namespace ClassLibrary.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("LocationId")
                         .HasColumnType("int");
@@ -221,7 +192,10 @@ namespace ClassLibrary.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<int?>("AdminId")
+                    b.Property<int>("AdminId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AdminId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("DateCreated")
@@ -247,6 +221,8 @@ namespace ClassLibrary.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AdminId");
+
+                    b.HasIndex("AdminId1");
 
                     b.HasIndex("DepartmentId");
 
@@ -301,6 +277,8 @@ namespace ClassLibrary.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdminId");
 
                     b.ToTable("Locations");
                 });
@@ -386,7 +364,7 @@ namespace ClassLibrary.Migrations
 
                     b.HasIndex("AdminId");
 
-                    b.ToTable("NewsItems");
+                    b.ToTable("NewsItem");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.NewsItemAgency", b =>
@@ -409,7 +387,7 @@ namespace ClassLibrary.Migrations
 
                     b.HasIndex("NewsItemId");
 
-                    b.ToTable("NewsItemAgencies");
+                    b.ToTable("NewsItemAgency");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.NewsItemDepartment", b =>
@@ -432,7 +410,7 @@ namespace ClassLibrary.Migrations
 
                     b.HasIndex("NewsItemId");
 
-                    b.ToTable("NewsItemDepartments");
+                    b.ToTable("NewsItemDepartment");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.NewsItemLocation", b =>
@@ -455,7 +433,7 @@ namespace ClassLibrary.Migrations
 
                     b.HasIndex("NewsItemId");
 
-                    b.ToTable("NewsItemLocations");
+                    b.ToTable("NewsItemLocation");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.NewsItemScreen", b =>
@@ -478,7 +456,7 @@ namespace ClassLibrary.Migrations
 
                     b.HasIndex("ScreenId");
 
-                    b.ToTable("NewsItemScreens");
+                    b.ToTable("NewsItemScreen");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.Screen", b =>
@@ -501,6 +479,11 @@ namespace ClassLibrary.Migrations
                     b.Property<int?>("DepartmentId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("IsOnline")
                         .HasColumnType("bit");
 
@@ -513,14 +496,17 @@ namespace ClassLibrary.Migrations
                     b.Property<int>("LocationId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("LocationId1")
+                        .HasColumnType("int");
+
                     b.Property<string>("MACAddress")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("ScreenType")
                         .IsRequired()
@@ -532,8 +518,7 @@ namespace ClassLibrary.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AdminId")
-                        .IsUnique();
+                    b.HasIndex("AdminId");
 
                     b.HasIndex("AgencyId");
 
@@ -541,58 +526,49 @@ namespace ClassLibrary.Migrations
 
                     b.HasIndex("LocationId");
 
+                    b.HasIndex("LocationId1");
+
                     b.ToTable("Screens");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.Admin", b =>
                 {
+                    b.HasOne("ClassLibrary.Models.Agency", "Agency")
+                        .WithMany()
+                        .HasForeignKey("AgencyId1");
+
                     b.HasOne("ClassLibrary.Models.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId");
 
                     b.HasOne("ClassLibrary.Models.Location", "Location")
-                        .WithOne("Admin")
-                        .HasForeignKey("ClassLibrary.Models.Admin", "LocationId");
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Location");
-                });
-
-            modelBuilder.Entity("ClassLibrary.Models.AdminDepartmentLocation", b =>
-                {
-                    b.HasOne("ClassLibrary.Models.Admin", "Admin")
-                        .WithMany("AdminDepartmentLocations")
-                        .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ClassLibrary.Models.Department", "Department")
-                        .WithMany("AdminDepartmentLocations")
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ClassLibrary.Models.Location", "Location")
                         .WithMany()
-                        .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("LocationId1");
 
-                    b.Navigation("Admin");
+                    b.HasOne("ClassLibrary.Models.Screen", "Screen")
+                        .WithMany()
+                        .HasForeignKey("ScreenId1");
+
+                    b.Navigation("Agency");
 
                     b.Navigation("Department");
 
                     b.Navigation("Location");
+
+                    b.Navigation("Screen");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.Agency", b =>
                 {
                     b.HasOne("ClassLibrary.Models.Admin", "Admin")
-                        .WithOne("Agency")
-                        .HasForeignKey("ClassLibrary.Models.Agency", "AdminId")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("ClassLibrary.Models.Admin", null)
+                        .WithMany("Agencies")
+                        .HasForeignKey("AdminId1");
 
                     b.HasOne("ClassLibrary.Models.Location", "Location")
                         .WithMany()
@@ -601,17 +577,6 @@ namespace ClassLibrary.Migrations
                         .IsRequired();
 
                     b.Navigation("Admin");
-
-                    b.Navigation("Location");
-                });
-
-            modelBuilder.Entity("ClassLibrary.Models.AllowedIpAddress", b =>
-                {
-                    b.HasOne("ClassLibrary.Models.Location", "Location")
-                        .WithMany("AllowedIpAddresses")
-                        .HasForeignKey("locationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Location");
                 });
@@ -619,13 +584,13 @@ namespace ClassLibrary.Migrations
             modelBuilder.Entity("ClassLibrary.Models.Department", b =>
                 {
                     b.HasOne("ClassLibrary.Models.Agency", "Agency")
-                        .WithMany("Departments")
+                        .WithMany()
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ClassLibrary.Models.Location", "Location")
-                        .WithMany("Departments")
+                        .WithMany()
                         .HasForeignKey("LocationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -637,17 +602,36 @@ namespace ClassLibrary.Migrations
 
             modelBuilder.Entity("ClassLibrary.Models.Employee", b =>
                 {
+                    b.HasOne("ClassLibrary.Models.Admin", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("ClassLibrary.Models.Admin", null)
                         .WithMany("Employees")
-                        .HasForeignKey("AdminId");
+                        .HasForeignKey("AdminId1");
 
                     b.HasOne("ClassLibrary.Models.Department", "Department")
-                        .WithMany("Employees")
+                        .WithMany()
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Admin");
+
                     b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("ClassLibrary.Models.Location", b =>
+                {
+                    b.HasOne("ClassLibrary.Models.Admin", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.MenuItems", b =>
@@ -655,13 +639,13 @@ namespace ClassLibrary.Migrations
                     b.HasOne("ClassLibrary.Models.Admin", "Admin")
                         .WithMany("MenuItems")
                         .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("ClassLibrary.Models.Agency", "Agency")
-                        .WithMany("MenuItems")
+                        .WithMany()
                         .HasForeignKey("AgencyId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Admin");
@@ -674,7 +658,7 @@ namespace ClassLibrary.Migrations
                     b.HasOne("ClassLibrary.Models.Admin", "Admin")
                         .WithMany("NewsItems")
                         .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Admin");
@@ -702,7 +686,7 @@ namespace ClassLibrary.Migrations
             modelBuilder.Entity("ClassLibrary.Models.NewsItemDepartment", b =>
                 {
                     b.HasOne("ClassLibrary.Models.Department", "Department")
-                        .WithMany("NewsItemDepartments")
+                        .WithMany()
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -721,7 +705,7 @@ namespace ClassLibrary.Migrations
             modelBuilder.Entity("ClassLibrary.Models.NewsItemLocation", b =>
                 {
                     b.HasOne("ClassLibrary.Models.Location", "Location")
-                        .WithMany("NewsItemLocations")
+                        .WithMany()
                         .HasForeignKey("LocationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -759,26 +743,31 @@ namespace ClassLibrary.Migrations
             modelBuilder.Entity("ClassLibrary.Models.Screen", b =>
                 {
                     b.HasOne("ClassLibrary.Models.Admin", "Admin")
-                        .WithOne("Screen")
-                        .HasForeignKey("ClassLibrary.Models.Screen", "AdminId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany()
+                        .HasForeignKey("AdminId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ClassLibrary.Models.Agency", "Agency")
                         .WithMany()
                         .HasForeignKey("AgencyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ClassLibrary.Models.Department", "Department")
                         .WithMany()
-                        .HasForeignKey("DepartmentId");
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ClassLibrary.Models.Location", "Location")
-                        .WithMany("Screens")
+                        .WithMany()
                         .HasForeignKey("LocationId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("ClassLibrary.Models.Location", null)
+                        .WithMany("Screens")
+                        .HasForeignKey("LocationId1");
 
                     b.Navigation("Admin");
 
@@ -791,46 +780,17 @@ namespace ClassLibrary.Migrations
 
             modelBuilder.Entity("ClassLibrary.Models.Admin", b =>
                 {
-                    b.Navigation("AdminDepartmentLocations");
-
-                    b.Navigation("Agency");
+                    b.Navigation("Agencies");
 
                     b.Navigation("Employees");
 
                     b.Navigation("MenuItems");
 
                     b.Navigation("NewsItems");
-
-                    b.Navigation("Screen");
-                });
-
-            modelBuilder.Entity("ClassLibrary.Models.Agency", b =>
-                {
-                    b.Navigation("Departments");
-
-                    b.Navigation("MenuItems");
-                });
-
-            modelBuilder.Entity("ClassLibrary.Models.Department", b =>
-                {
-                    b.Navigation("AdminDepartmentLocations");
-
-                    b.Navigation("Employees");
-
-                    b.Navigation("NewsItemDepartments");
                 });
 
             modelBuilder.Entity("ClassLibrary.Models.Location", b =>
                 {
-                    b.Navigation("Admin")
-                        .IsRequired();
-
-                    b.Navigation("AllowedIpAddresses");
-
-                    b.Navigation("Departments");
-
-                    b.Navigation("NewsItemLocations");
-
                     b.Navigation("Screens");
                 });
 

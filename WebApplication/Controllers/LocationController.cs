@@ -28,12 +28,15 @@ namespace TheWebApplication.Controllers
             try
             {
                 var locations = await _context.Locations
+                    .Include(l => l.Admin)
                     .Select(l => new LocationDto
                     {
                         Id = l.Id,
                         Name = l.Name,
                         Address = l.Address,
                         DateCreated = l.DateCreated,
+                        AdminId = l.AdminId,
+                        AdminName = l.Admin.Name
                     })
                     .ToListAsync();
 
@@ -60,21 +63,10 @@ namespace TheWebApplication.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ApiResponse<LocationDto>>> GetLocation(int id)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse<LocationDto>
-                {
-                    Success = false,
-                    Message = "Invalid request.",
-                    Data = null
-                });
-            }
-
             try
             {
                 var location = await _context.Locations
-                    .Include(l => l.Screens)
-                    .Include(l => l.Departments)
+                    .Include(l => l.Admin)
                     .FirstOrDefaultAsync(l => l.Id == id);
 
                 if (location == null)
@@ -93,6 +85,8 @@ namespace TheWebApplication.Controllers
                     Name = location.Name,
                     Address = location.Address,
                     DateCreated = location.DateCreated,
+                    AdminId = location.AdminId,
+                    AdminName = location.Admin.Name
                 };
 
                 return Ok(new ApiResponse<LocationDto>
@@ -114,6 +108,16 @@ namespace TheWebApplication.Controllers
             }
         }
 
+        private int GetCurrentAdminId()
+        {
+            var adminIdClaim = User.Claims.FirstOrDefault(c => c.Type == "AdminId");
+            if (adminIdClaim == null)
+            {
+                throw new UnauthorizedAccessException("Admin ID not found in token");
+            }
+            return int.Parse(adminIdClaim.Value);
+        }
+
         [HttpPost]
         public async Task<ActionResult<ApiResponse<LocationDto>>> CreateLocation([FromBody] CreateLocationDto createLocationDto)
         {
@@ -132,12 +136,14 @@ namespace TheWebApplication.Controllers
 
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+
                 var location = new Location
                 {
                     Name = createLocationDto.Name,
                     Address = createLocationDto.Address,
                     DateCreated = DateTime.UtcNow,
-                    AdminId = 1
+                    AdminId = currentAdminId
                 };
 
                 _context.Locations.Add(location);
@@ -173,18 +179,10 @@ namespace TheWebApplication.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<LocationDto>>> UpdateLocation(int id, [FromBody] UpdateLocationDto updateLocationDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(new ApiResponse<LocationDto>
-                {
-                    Success = false,
-                    Message = "Invalid request.",
-                    Data = null
-                });
-            }
-
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+                
                 var location = await _context.Locations.FindAsync(id);
                 if (location == null)
                 {
@@ -192,6 +190,16 @@ namespace TheWebApplication.Controllers
                     {
                         Success = false,
                         Message = $"Location with ID {id} not found.",
+                        Data = null
+                    });
+                }
+
+                if (location.AdminId != currentAdminId)
+                {
+                    return NotFound(new ApiResponse<LocationDto>
+                    {
+                        Success = false,
+                        Message = "You Can Only Update The Locations You Created",
                         Data = null
                     });
                 }
@@ -234,6 +242,8 @@ namespace TheWebApplication.Controllers
         {
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+                
                 var location = await _context.Locations.FindAsync(id);
                 if (location == null)
                 {
@@ -241,6 +251,16 @@ namespace TheWebApplication.Controllers
                     {
                         Success = false,
                         Message = $"Location with ID {id} not found.",
+                        Data = null
+                    });
+                }
+
+                if (location.AdminId != currentAdminId)
+                {
+                    return NotFound(new ApiResponse<LocationDto>
+                    {
+                        Success = false,
+                        Message = "You Can Only Update The Locations You Created",
                         Data = null
                     });
                 }
@@ -276,7 +296,8 @@ namespace TheWebApplication.Controllers
                 var errorLog = new ErrorLog
                 {
                     ErrorMessage = ex.Message,
-                    DateCreated = DateTime.UtcNow
+                    DateCreated = DateTime.UtcNow,
+                    ScreenId = 0  // Set appropriate screen ID or make it nullable if not always applicable
                 };
 
                 _context.ErrorLogs.Add(errorLog);

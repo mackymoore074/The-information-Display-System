@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace ClassLibrary.Models
 {
-    public class NewsItem
+    public class MenuItem
     {
         public int Id { get; set; }
 
@@ -16,18 +16,18 @@ namespace ClassLibrary.Models
 
         [Required]
         [StringLength(450)]
-        public string NewsItemBody { get; set; }
+        public string Description { get; set; }
 
         public DateTime DateCreated { get; set; }
         public DateTime LastUpdated { get; set; }
         
         [Required]
-        public DateTime TimeOutDate { get; set; }
+        public DateTime TimeOutDate { get; set; }  // When the menu item should stop being displayed
 
-        public ImportanceLevel Importance { get; set; }
+        public MealType Type { get; set; }  // Breakfast, Lunch, Dinner, etc.
 
-        [Url]
-        public string? MoreInformationUrl { get; set; }
+        [Range(0, 10000)]
+        public decimal? Price { get; set; }
 
         [Required]
         public int AdminId { get; set; }
@@ -68,7 +68,7 @@ namespace ClassLibrary.Models
             set => LocationIds = JsonSerializer.Serialize(value);
         }
 
-        public NewsItem()
+        public MenuItem()
         {
             DateCreated = DateTime.UtcNow;
             LastUpdated = DateTime.UtcNow;
@@ -79,10 +79,13 @@ namespace ClassLibrary.Models
         }
     }
 
-    public enum ImportanceLevel
+    public enum MealType
     {
-        VeryImportant = 1,
-        SomewhatImportant = 2,
-        LowImportance = 3
+        Breakfast = 1,
+        Lunch = 2,
+        Dinner = 3,
+        Snack = 4,
+        Dessert = 5,
+        Beverage = 6
     }
 }

@@ -42,12 +42,15 @@ namespace ClassLibrary.Models
         public DateTime LastLogin { get; set; }
 
         // Collections
-        public ICollection<MenuItems> MenuItems { get; set; } = new List<MenuItems>();
+        public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
         public ICollection<NewsItem> NewsItems { get; set; } = new List<NewsItem>();
         public ICollection<Employee> Employees { get; set; } = new List<Employee>();
 
         // Change this to ICollection to indicate one-to-many relationship
         public ICollection<Agency> Agencies { get; set; } = new List<Agency>();
+
+        // Add a computed property for full name
+        public string Name => $"{FirstName} {LastName}";
     }
 
     public enum Role

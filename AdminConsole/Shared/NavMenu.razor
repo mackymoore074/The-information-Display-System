@@ -17,11 +17,46 @@
                 <span class="oi oi-home" aria-hidden="true"></span> Home
             </NavLink>
         </div>
+
+        <!-- Display Management Section -->
+        <div class="nav-section px-3 mt-3">
+            <small class="text-muted">DISPLAY MANAGEMENT</small>
+        </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="news-items">
+                <span class="oi oi-document" aria-hidden="true"></span> News & Updates
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="menu-items">
+                <span class="oi oi-basket" aria-hidden="true"></span> Daily Menu
+            </NavLink>
+        </div>
+
+        <!-- User Management Section -->
+        <div class="nav-section px-3 mt-3">
+            <small class="text-muted">USER MANAGEMENT</small>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="employees">
+                <span class="oi oi-people" aria-hidden="true"></span> Employees
+            </NavLink>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="nav-section px-3 mt-3">
+            <small class="text-muted">SYSTEM</small>
+        </div>
+
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="settings">
                 <span class="oi oi-cog" aria-hidden="true"></span> Settings
             </NavLink>
         </div>
+
         <div class="nav-item px-3 mt-auto">
             <button class="nav-link btn btn-link" @onclick="HandleLogout">
                 <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
@@ -29,6 +64,31 @@
         </div>
     </nav>
 </div>
+
+<style>
+    .nav-section {
+        margin-bottom: 0.5rem;
+    }
+
+    .nav-section small {
+        font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+
+    .mt-auto {
+        margin-top: auto !important;
+    }
+
+    .nav-link {
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+</style>
 
 @code {
     private bool collapseNavMenu = true;

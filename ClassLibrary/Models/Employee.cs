@@ -10,19 +10,38 @@ namespace ClassLibrary.Models
     public class Employee
     {
         public int Id { get; set; }
+
         [Required]
         [StringLength(100)]
-        public string FirstName { get; set; } // Employee's first name
+        public string FirstName { get; set; }
+
         [Required]
         [StringLength(100)]
-        public string LastName { get; set; } // Employee's last name
+        public string LastName { get; set; }
+
         [Required]
         [EmailAddress]
-        public string? Email { get; set; } // Employee's email address
-        public DateTime DateCreated { get; set; }
+        [StringLength(100)]
+        public string? Email { get; set; }
 
-        public int DepartmentId { get; set; }  // Optional
+        [Required]
+        [StringLength(20)]
+        public string EmployeeId { get; set; }  // Employee identification number
+
+        [Required]
+        public int DepartmentId { get; set; }
         public Department Department { get; set; }
 
+        [Required]
+        public int LocationId { get; set; }
+        public Location Location { get; set; }
+
+        public DateTime DateCreated { get; set; }
+        public DateTime LastUpdated { get; set; }
+        public bool IsActive { get; set; }
+
+        [Required]
+        public int AdminId { get; set; }  // Admin who created/manages this employee
+        public Admin Admin { get; set; }
     }
 }

@@ -1,0 +1,253 @@
+@page "/employees"
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels.Employee
+@inject IHttpClientFactory ClientFactory
+@inject IJSRuntime JsRuntime
+@attribute [Authorize]
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title">Employees</h5>
+                <button class="btn btn-primary" @onclick="OpenCreateDialog">
+                    <i class="bi bi-plus"></i> Add Employee
+                </button>
+            </div>
+
+            @if (employees == null)
+            {
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" placeholder="Search..." 
+                               @bind="searchString" @bind:event="oninput" />
+                    </div>
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Location</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var employee in employees)
+                            {
+                                <tr>
+                                    <td>@employee.EmployeeId</td>
+                                    <td>@($"{employee.FirstName} {employee.LastName}")</td>
+                                    <td>@employee.Email</td>
+                                    <td>@(employee.Department?.Name ?? "-")</td>
+                                    <td>@(employee.Location?.Name ?? "-")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                @onclick="() => OpenEditDialog(employee)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                @onclick="() => OpenDeleteDialog(employee)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (showDialog)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@dialogTitle</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@model" OnValidSubmit="SaveEmployee">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <InputText class="form-control" @bind-Value="model.FirstName" />
+                            <ValidationMessage For="@(() => model.FirstName)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <InputText class="form-control" @bind-Value="model.LastName" />
+                            <ValidationMessage For="@(() => model.LastName)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText class="form-control" @bind-Value="model.Email" />
+                            <ValidationMessage For="@(() => model.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Employee ID</label>
+                            <InputText class="form-control" @bind-Value="model.EmployeeId" />
+                            <ValidationMessage For="@(() => model.EmployeeId)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <InputSelect class="form-select" @bind-Value="model.DepartmentId">
+                                @if (departments != null)
+                                {
+                                    @foreach (var dept in departments)
+                                    {
+                                        <option value="@dept.Id">@dept.Name</option>
+                                    }
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <InputSelect class="form-select" @bind-Value="model.LocationId">
+                                @if (locations != null)
+                                {
+                                    @foreach (var loc in locations)
+                                    {
+                                        <option value="@loc.Id">@loc.Name</option>
+                                    }
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseDialog">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<Employee> employees;
+    private List<Department> departments;
+    private List<Location> locations;
+    private string searchString = "";
+    private bool showDialog;
+    private string dialogTitle;
+    private CreateEmployeeDto model = new();
+    private int? editingId;
+    private HttpClient Http => ClientFactory.CreateClient();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            employees = await Http.GetFromJsonAsync<List<Employee>>("api/Employee");
+            departments = await Http.GetFromJsonAsync<List<Department>>("api/Department");
+            locations = await Http.GetFromJsonAsync<List<Location>>("api/Location");
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        editingId = null;
+        model = new CreateEmployeeDto();
+        dialogTitle = "Create Employee";
+        showDialog = true;
+    }
+
+    private void OpenEditDialog(Employee employee)
+    {
+        editingId = employee.Id;
+        model = new CreateEmployeeDto
+        {
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            Email = employee.Email,
+            EmployeeId = employee.EmployeeId,
+            DepartmentId = employee.DepartmentId,
+            LocationId = employee.LocationId
+        };
+        dialogTitle = "Edit Employee";
+        showDialog = true;
+    }
+
+    private async Task OpenDeleteDialog(Employee employee)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {employee.FirstName} {employee.LastName}?"))
+        {
+            await DeleteEmployee(employee.Id);
+        }
+    }
+
+    private async Task SaveEmployee()
+    {
+        try
+        {
+            if (editingId.HasValue)
+            {
+                await Http.PutAsJsonAsync($"api/Employee/{editingId}", model);
+            }
+            else
+            {
+                await Http.PostAsJsonAsync("api/Employee", model);
+            }
+
+            await LoadData();
+            CloseDialog();
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine($"Error saving employee: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteEmployee(int id)
+    {
+        try
+        {
+            await Http.DeleteAsync($"api/Employee/{id}");
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine($"Error deleting employee: {ex.Message}");
+        }
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+    }
+} 

@@ -15,6 +15,8 @@ namespace ClassLibrary.DtoModels.Agency
 
         public int AdminId { get; set; }
 
+        public string AdminName { get; set; }
+
         public int LocationId { get; set; }
 
         public string LocationName { get; set; }

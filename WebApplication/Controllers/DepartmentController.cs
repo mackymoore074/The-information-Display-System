@@ -22,14 +22,27 @@ namespace TheWebApplication.Controllers
             _logger = logger;
         }
 
+        private int GetCurrentAdminId()
+        {
+            var adminIdClaim = User.Claims.FirstOrDefault(c => c.Type == "AdminId");
+            if (adminIdClaim == null)
+            {
+                throw new UnauthorizedAccessException("Admin ID not found in token");
+            }
+            return int.Parse(adminIdClaim.Value);
+        }
+
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<DepartmentDto>>>> GetDepartments()
         {
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+
                 var departments = await _context.Departments
                     .Include(d => d.Location)
                     .Include(d => d.Agency)
+                    .Where(d => d.Location.AdminId == currentAdminId || (d.Agency != null && d.Agency.AdminId == currentAdminId))
                     .Select(d => new DepartmentDto
                     {
                         Id = d.Id,
@@ -141,12 +154,45 @@ namespace TheWebApplication.Controllers
 
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+
+                // Validate Location ownership
+                var location = await _context.Locations
+                    .FirstOrDefaultAsync(l => l.Id == createDepartmentDto.LocationId && l.AdminId == currentAdminId);
+                
+                if (location == null)
+                {
+                    return BadRequest(new ApiResponse<DepartmentDto>
+                    {
+                        Success = false,
+                        Message = "Invalid Location ID or you don't have permission to use this location.",
+                        Data = null
+                    });
+                }
+
+                // Validate Agency ownership if provided
+                if (createDepartmentDto.AgencyId != 0)
+                {
+                    var agency = await _context.Agencies
+                        .FirstOrDefaultAsync(a => a.Id == createDepartmentDto.AgencyId && a.AdminId == currentAdminId);
+                    
+                    if (agency == null)
+                    {
+                        return BadRequest(new ApiResponse<DepartmentDto>
+                        {
+                            Success = false,
+                            Message = "Invalid Agency ID or you don't have permission to use this agency.",
+                            Data = null
+                        });
+                    }
+                }
+
                 var department = new Department
                 {
                     Name = createDepartmentDto.Name,
                     Description = createDepartmentDto.Description,
-                    AgencyId = (int)createDepartmentDto.AgencyId,
-                    LocationId = (int)createDepartmentDto.LocationId,
+                    AgencyId = createDepartmentDto.AgencyId,
+                    LocationId = createDepartmentDto.LocationId,
                     DateCreated = DateTime.UtcNow
                 };
 
@@ -199,15 +245,53 @@ namespace TheWebApplication.Controllers
 
             try
             {
-                var department = await _context.Departments.FindAsync(id);
+                int currentAdminId = GetCurrentAdminId();
+
+                var department = await _context.Departments
+                    .Include(d => d.Location)
+                    .Include(d => d.Agency)
+                    .FirstOrDefaultAsync(d => d.Id == id && 
+                        (d.Location.AdminId == currentAdminId || (d.Agency != null && d.Agency.AdminId == currentAdminId)));
+
                 if (department == null)
                 {
                     return NotFound(new ApiResponse<DepartmentDto>
                     {
                         Success = false,
-                        Message = $"Department with ID {id} not found.",
-                        Data = default
+                        Message = "Department not found or you don't have permission to update it.",
+                        Data = null
                     });
+                }
+
+                // Validate new Location ownership
+                var location = await _context.Locations
+                    .FirstOrDefaultAsync(l => l.Id == updateDepartmentDto.LocationId && l.AdminId == currentAdminId);
+                
+                if (location == null)
+                {
+                    return BadRequest(new ApiResponse<DepartmentDto>
+                    {
+                        Success = false,
+                        Message = "Invalid Location ID or you don't have permission to use this location.",
+                        Data = null
+                    });
+                }
+
+                // Validate new Agency ownership if provided
+                if (updateDepartmentDto.AgencyId != 0)
+                {
+                    var agency = await _context.Agencies
+                        .FirstOrDefaultAsync(a => a.Id == updateDepartmentDto.AgencyId && a.AdminId == currentAdminId);
+                    
+                    if (agency == null)
+                    {
+                        return BadRequest(new ApiResponse<DepartmentDto>
+                        {
+                            Success = false,
+                            Message = "Invalid Agency ID or you don't have permission to use this agency.",
+                            Data = null
+                        });
+                    }
                 }
 
                 department.Name = updateDepartmentDto.Name;
@@ -254,13 +338,20 @@ namespace TheWebApplication.Controllers
         {
             try
             {
-                var department = await _context.Departments.FindAsync(id);
+                int currentAdminId = GetCurrentAdminId();
+
+                var department = await _context.Departments
+                    .Include(d => d.Location)
+                    .Include(d => d.Agency)
+                    .FirstOrDefaultAsync(d => d.Id == id && 
+                        (d.Location.AdminId == currentAdminId || (d.Agency != null && d.Agency.AdminId == currentAdminId)));
+
                 if (department == null)
                 {
                     return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = $"Department with ID {id} not found.",
+                        Message = "Department not found or you don't have permission to delete it.",
                         Data = null
                     });
                 }

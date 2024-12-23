@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using TheWebApplication.Middleware;
 using TheWebApplication.Security;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Common;
 using ClassLibrary;
 
 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
@@ -66,21 +67,57 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            builder.Configuration["JwtSettings:Key"])),
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"])),
         ValidateIssuer = true,
         ValidateAudience = true,
+        ValidateLifetime = true,
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:Audience"]
     };
 
-    options.EventsType = typeof(CustomJwtBearerEvents);
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            context.NoResult();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            
+            var response = new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Authentication failed",
+                Data = null,
+                Errors = new List<string> { context.Exception.Message }
+            };
+
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
+        },
+        OnChallenge = context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            
+            var response = new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Unauthorized access",
+                Data = null,
+                Errors = new List<string> { "You are not authorized to access this resource" }
+            };
+
+            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
+        }
+    };
 });
 
 builder.Services.AddScoped<CustomJwtBearerEvents>();
@@ -120,7 +157,48 @@ app.UseMiddleware<CustomAuthorizationMiddleware>();
 // Map controllers and apply CORS policy
 app.MapControllers().RequireCors("AllowBlazor");
 
+// Add this debugging middleware
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"Request Path: {context.Request.Path}");
+    Console.WriteLine($"Request Method: {context.Request.Method}");
+    Console.WriteLine($"Authorization Header: {context.Request.Headers["Authorization"]}");
+    
+    var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+    if (token != null)
+    {
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+            Console.WriteLine("Token Details:");
+            Console.WriteLine($"Issuer: {jsonToken?.Issuer}");
+            Console.WriteLine($"Valid From: {jsonToken?.ValidFrom}");
+            Console.WriteLine($"Valid To: {jsonToken?.ValidTo}");
+            Console.WriteLine("Claims:");
+            if (jsonToken?.Claims != null)
+            {
+                foreach (var claim in jsonToken.Claims)
+                {
+                    Console.WriteLine($"  {claim.Type}: {claim.Value}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Token parsing error: {ex.GetType().Name} - {ex.Message}");
+        }
+    }
+    else
+    {
+        Console.WriteLine("No token found in request");
+    }
+
+    await next();
+});
+
 // Run the application
 app.Run();
+
 
 

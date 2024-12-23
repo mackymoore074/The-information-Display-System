@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ClassLibrary.Migrations
 {
-    public partial class init : Migration
+    public partial class InitialCreate : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -25,6 +25,32 @@ namespace ClassLibrary.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Admins",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FirstName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Role = table.Column<int>(type: "int", nullable: false),
+                    AgencyId = table.Column<int>(type: "int", nullable: true),
+                    AgencyId1 = table.Column<int>(type: "int", nullable: true),
+                    DepartmentId = table.Column<int>(type: "int", nullable: true),
+                    LocationId = table.Column<int>(type: "int", nullable: true),
+                    LocationId1 = table.Column<int>(type: "int", nullable: true),
+                    ScreenId = table.Column<int>(type: "int", nullable: true),
+                    ScreenId1 = table.Column<int>(type: "int", nullable: true),
+                    DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Admins", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Locations",
                 columns: table => new
                 {
@@ -38,107 +64,16 @@ namespace ClassLibrary.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Locations", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AllowedIpAddresses",
-                columns: table => new
-                {
-                    IpAddress = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    locationId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AllowedIpAddresses", x => x.IpAddress);
                     table.ForeignKey(
-                        name: "FK_AllowedIpAddresses_Locations_locationId",
-                        column: x => x.locationId,
-                        principalTable: "Locations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AdminDepartmentLocation",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AdminId = table.Column<int>(type: "int", nullable: false),
-                    DepartmentId = table.Column<int>(type: "int", nullable: false),
-                    LocationId = table.Column<int>(type: "int", nullable: false),
-                    AssignedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AdminDepartmentLocation", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AdminDepartmentLocation_Locations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "Locations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Admins",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FirstName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
-                    AgencyId = table.Column<int>(type: "int", nullable: true),
-                    DepartmentId = table.Column<int>(type: "int", nullable: true),
-                    LocationId = table.Column<int>(type: "int", nullable: true),
-                    ScreenId = table.Column<int>(type: "int", nullable: true),
-                    DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Admins", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Admins_Locations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "Locations",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Agencies",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    AdminId = table.Column<int>(type: "int", nullable: false),
-                    LocationId = table.Column<int>(type: "int", nullable: false),
-                    DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Agencies", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Agencies_Admins_AdminId",
+                        name: "FK_Locations_Admins_AdminId",
                         column: x => x.AdminId,
                         principalTable: "Admins",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Agencies_Locations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "Locations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "NewsItems",
+                name: "NewsItem",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -154,13 +89,74 @@ namespace ClassLibrary.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_NewsItems", x => x.Id);
+                    table.PrimaryKey("PK_NewsItem", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_NewsItems_Admins_AdminId",
+                        name: "FK_NewsItem_Admins_AdminId",
+                        column: x => x.AdminId,
+                        principalTable: "Admins",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Agencies",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    LocationId = table.Column<int>(type: "int", nullable: false),
+                    AdminId = table.Column<int>(type: "int", nullable: false),
+                    DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AdminId1 = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Agencies", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Agencies_Admins_AdminId",
                         column: x => x.AdminId,
                         principalTable: "Admins",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Agencies_Admins_AdminId1",
+                        column: x => x.AdminId1,
+                        principalTable: "Admins",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Agencies_Locations_LocationId",
+                        column: x => x.LocationId,
+                        principalTable: "Locations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NewsItemLocation",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    NewsItemId = table.Column<int>(type: "int", nullable: false),
+                    LocationId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewsItemLocation", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NewsItemLocation_Locations_LocationId",
+                        column: x => x.LocationId,
+                        principalTable: "Locations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_NewsItemLocation_NewsItem_NewsItemId",
+                        column: x => x.NewsItemId,
+                        principalTable: "NewsItem",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -170,7 +166,7 @@ namespace ClassLibrary.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     AgencyId = table.Column<int>(type: "int", nullable: false),
                     LocationId = table.Column<int>(type: "int", nullable: false)
@@ -214,17 +210,17 @@ namespace ClassLibrary.Migrations
                         column: x => x.AdminId,
                         principalTable: "Admins",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_MenuItems_Agencies_AgencyId",
                         column: x => x.AgencyId,
                         principalTable: "Agencies",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "NewsItemAgencies",
+                name: "NewsItemAgency",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -234,43 +230,17 @@ namespace ClassLibrary.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_NewsItemAgencies", x => x.Id);
+                    table.PrimaryKey("PK_NewsItemAgency", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_NewsItemAgencies_Agencies_AgencyId",
+                        name: "FK_NewsItemAgency_Agencies_AgencyId",
                         column: x => x.AgencyId,
                         principalTable: "Agencies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_NewsItemAgencies_NewsItems_NewsItemId",
+                        name: "FK_NewsItemAgency_NewsItem_NewsItemId",
                         column: x => x.NewsItemId,
-                        principalTable: "NewsItems",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "NewsItemLocations",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    NewsItemId = table.Column<int>(type: "int", nullable: false),
-                    LocationId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_NewsItemLocations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_NewsItemLocations_Locations_LocationId",
-                        column: x => x.LocationId,
-                        principalTable: "Locations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_NewsItemLocations_NewsItems_NewsItemId",
-                        column: x => x.NewsItemId,
-                        principalTable: "NewsItems",
+                        principalTable: "NewsItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -286,7 +256,8 @@ namespace ClassLibrary.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DepartmentId = table.Column<int>(type: "int", nullable: false),
-                    AdminId = table.Column<int>(type: "int", nullable: true)
+                    AdminId = table.Column<int>(type: "int", nullable: false),
+                    AdminId1 = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -294,6 +265,12 @@ namespace ClassLibrary.Migrations
                     table.ForeignKey(
                         name: "FK_Employees_Admins_AdminId",
                         column: x => x.AdminId,
+                        principalTable: "Admins",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Employees_Admins_AdminId1",
+                        column: x => x.AdminId1,
                         principalTable: "Admins",
                         principalColumn: "Id");
                     table.ForeignKey(
@@ -305,7 +282,7 @@ namespace ClassLibrary.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "NewsItemDepartments",
+                name: "NewsItemDepartment",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -315,17 +292,17 @@ namespace ClassLibrary.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_NewsItemDepartments", x => x.Id);
+                    table.PrimaryKey("PK_NewsItemDepartment", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_NewsItemDepartments_Departments_DepartmentId",
+                        name: "FK_NewsItemDepartment_Departments_DepartmentId",
                         column: x => x.DepartmentId,
                         principalTable: "Departments",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_NewsItemDepartments_NewsItems_NewsItemId",
+                        name: "FK_NewsItemDepartment_NewsItem_NewsItemId",
                         column: x => x.NewsItemId,
-                        principalTable: "NewsItems",
+                        principalTable: "NewsItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -336,7 +313,8 @@ namespace ClassLibrary.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     LocationId = table.Column<int>(type: "int", nullable: false),
                     AgencyId = table.Column<int>(type: "int", nullable: false),
                     DateCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -347,7 +325,8 @@ namespace ClassLibrary.Migrations
                     LastCheckedIn = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsOnline = table.Column<bool>(type: "bit", nullable: false),
                     StatusMessage = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    MACAddress = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    MACAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LocationId1 = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -357,28 +336,34 @@ namespace ClassLibrary.Migrations
                         column: x => x.AdminId,
                         principalTable: "Admins",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Screens_Agencies_AgencyId",
                         column: x => x.AgencyId,
                         principalTable: "Agencies",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Screens_Departments_DepartmentId",
                         column: x => x.DepartmentId,
                         principalTable: "Departments",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Screens_Locations_LocationId",
                         column: x => x.LocationId,
                         principalTable: "Locations",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Screens_Locations_LocationId1",
+                        column: x => x.LocationId1,
+                        principalTable: "Locations",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
-                name: "NewsItemScreens",
+                name: "NewsItemScreen",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -388,15 +373,15 @@ namespace ClassLibrary.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_NewsItemScreens", x => x.Id);
+                    table.PrimaryKey("PK_NewsItemScreen", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_NewsItemScreens_NewsItems_NewsItemId",
+                        name: "FK_NewsItemScreen_NewsItem_NewsItemId",
                         column: x => x.NewsItemId,
-                        principalTable: "NewsItems",
+                        principalTable: "NewsItem",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_NewsItemScreens_Screens_ScreenId",
+                        name: "FK_NewsItemScreen_Screens_ScreenId",
                         column: x => x.ScreenId,
                         principalTable: "Screens",
                         principalColumn: "Id",
@@ -405,23 +390,13 @@ namespace ClassLibrary.Migrations
 
             migrationBuilder.InsertData(
                 table: "Admins",
-                columns: new[] { "Id", "AgencyId", "DateCreated", "DepartmentId", "Email", "FirstName", "LastLogin", "LastName", "LocationId", "PasswordHash", "Role", "ScreenId" },
-                values: new object[] { 1, null, new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3731), null, "admin@company.com", "John", new DateTime(2024, 12, 16, 20, 24, 22, 690, DateTimeKind.Utc).AddTicks(3737), "Doe", null, "$2a$11$vEOnG41t3HF0SoGktYLQjO3PsMl9vUnf1d4gn.R1qI5BDAPN3UUzO", 2, null });
+                columns: new[] { "Id", "AgencyId", "AgencyId1", "DateCreated", "DepartmentId", "Email", "FirstName", "LastLogin", "LastName", "LocationId", "LocationId1", "PasswordHash", "Role", "ScreenId", "ScreenId1" },
+                values: new object[] { 1, null, null, new DateTime(2024, 12, 23, 10, 4, 59, 152, DateTimeKind.Utc).AddTicks(5010), null, "admin@company.com", "John", new DateTime(2024, 12, 23, 10, 4, 59, 152, DateTimeKind.Utc).AddTicks(5010), "Doe", null, null, "$2a$11$hpgbxtW8GWWTLGtmPS.r0OvcdFWRLSGu2rmmxn/g8eCh3p22qwZqK", 1, null, null });
 
             migrationBuilder.CreateIndex(
-                name: "IX_AdminDepartmentLocation_AdminId",
-                table: "AdminDepartmentLocation",
-                column: "AdminId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AdminDepartmentLocation_DepartmentId",
-                table: "AdminDepartmentLocation",
-                column: "DepartmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AdminDepartmentLocation_LocationId",
-                table: "AdminDepartmentLocation",
-                column: "LocationId");
+                name: "IX_Admins_AgencyId1",
+                table: "Admins",
+                column: "AgencyId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Admins_DepartmentId",
@@ -429,27 +404,29 @@ namespace ClassLibrary.Migrations
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Admins_LocationId",
+                name: "IX_Admins_LocationId1",
                 table: "Admins",
-                column: "LocationId",
-                unique: true,
-                filter: "[LocationId] IS NOT NULL");
+                column: "LocationId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Admins_ScreenId1",
+                table: "Admins",
+                column: "ScreenId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Agencies_AdminId",
                 table: "Agencies",
-                column: "AdminId",
-                unique: true);
+                column: "AdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Agencies_AdminId1",
+                table: "Agencies",
+                column: "AdminId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Agencies_LocationId",
                 table: "Agencies",
                 column: "LocationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AllowedIpAddresses_locationId",
-                table: "AllowedIpAddresses",
-                column: "locationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Departments_AgencyId",
@@ -467,9 +444,19 @@ namespace ClassLibrary.Migrations
                 column: "AdminId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Employees_AdminId1",
+                table: "Employees",
+                column: "AdminId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Employees_DepartmentId",
                 table: "Employees",
                 column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Locations_AdminId",
+                table: "Locations",
+                column: "AdminId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MenuItems_AdminId",
@@ -482,55 +469,54 @@ namespace ClassLibrary.Migrations
                 column: "AgencyId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NewsItemAgencies_AgencyId",
-                table: "NewsItemAgencies",
-                column: "AgencyId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NewsItemAgencies_NewsItemId",
-                table: "NewsItemAgencies",
-                column: "NewsItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NewsItemDepartments_DepartmentId",
-                table: "NewsItemDepartments",
-                column: "DepartmentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NewsItemDepartments_NewsItemId",
-                table: "NewsItemDepartments",
-                column: "NewsItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NewsItemLocations_LocationId",
-                table: "NewsItemLocations",
-                column: "LocationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NewsItemLocations_NewsItemId",
-                table: "NewsItemLocations",
-                column: "NewsItemId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_NewsItems_AdminId",
-                table: "NewsItems",
+                name: "IX_NewsItem_AdminId",
+                table: "NewsItem",
                 column: "AdminId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NewsItemScreens_NewsItemId",
-                table: "NewsItemScreens",
+                name: "IX_NewsItemAgency_AgencyId",
+                table: "NewsItemAgency",
+                column: "AgencyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItemAgency_NewsItemId",
+                table: "NewsItemAgency",
                 column: "NewsItemId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_NewsItemScreens_ScreenId",
-                table: "NewsItemScreens",
+                name: "IX_NewsItemDepartment_DepartmentId",
+                table: "NewsItemDepartment",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItemDepartment_NewsItemId",
+                table: "NewsItemDepartment",
+                column: "NewsItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItemLocation_LocationId",
+                table: "NewsItemLocation",
+                column: "LocationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItemLocation_NewsItemId",
+                table: "NewsItemLocation",
+                column: "NewsItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItemScreen_NewsItemId",
+                table: "NewsItemScreen",
+                column: "NewsItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NewsItemScreen_ScreenId",
+                table: "NewsItemScreen",
                 column: "ScreenId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Screens_AdminId",
                 table: "Screens",
-                column: "AdminId",
-                unique: true);
+                column: "AdminId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Screens_AgencyId",
@@ -547,21 +533,17 @@ namespace ClassLibrary.Migrations
                 table: "Screens",
                 column: "LocationId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_AdminDepartmentLocation_Admins_AdminId",
-                table: "AdminDepartmentLocation",
-                column: "AdminId",
-                principalTable: "Admins",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+            migrationBuilder.CreateIndex(
+                name: "IX_Screens_LocationId1",
+                table: "Screens",
+                column: "LocationId1");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_AdminDepartmentLocation_Departments_DepartmentId",
-                table: "AdminDepartmentLocation",
-                column: "DepartmentId",
-                principalTable: "Departments",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                name: "FK_Admins_Agencies_AgencyId1",
+                table: "Admins",
+                column: "AgencyId1",
+                principalTable: "Agencies",
+                principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Admins_Departments_DepartmentId",
@@ -569,19 +551,59 @@ namespace ClassLibrary.Migrations
                 column: "DepartmentId",
                 principalTable: "Departments",
                 principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Admins_Locations_LocationId1",
+                table: "Admins",
+                column: "LocationId1",
+                principalTable: "Locations",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Admins_Screens_ScreenId1",
+                table: "Admins",
+                column: "ScreenId1",
+                principalTable: "Screens",
+                principalColumn: "Id");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_Agencies_Admins_AdminId",
-                table: "Agencies");
+                name: "FK_Admins_Agencies_AgencyId1",
+                table: "Admins");
 
-            migrationBuilder.DropTable(
-                name: "AdminDepartmentLocation");
+            migrationBuilder.DropForeignKey(
+                name: "FK_Departments_Agencies_AgencyId",
+                table: "Departments");
 
-            migrationBuilder.DropTable(
-                name: "AllowedIpAddresses");
+            migrationBuilder.DropForeignKey(
+                name: "FK_Screens_Agencies_AgencyId",
+                table: "Screens");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Admins_Departments_DepartmentId",
+                table: "Admins");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Screens_Departments_DepartmentId",
+                table: "Screens");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Admins_Locations_LocationId1",
+                table: "Admins");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Screens_Locations_LocationId",
+                table: "Screens");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Screens_Locations_LocationId1",
+                table: "Screens");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_Admins_Screens_ScreenId1",
+                table: "Admins");
 
             migrationBuilder.DropTable(
                 name: "Employees");
@@ -593,34 +615,34 @@ namespace ClassLibrary.Migrations
                 name: "MenuItems");
 
             migrationBuilder.DropTable(
-                name: "NewsItemAgencies");
+                name: "NewsItemAgency");
 
             migrationBuilder.DropTable(
-                name: "NewsItemDepartments");
+                name: "NewsItemDepartment");
 
             migrationBuilder.DropTable(
-                name: "NewsItemLocations");
+                name: "NewsItemLocation");
 
             migrationBuilder.DropTable(
-                name: "NewsItemScreens");
+                name: "NewsItemScreen");
 
             migrationBuilder.DropTable(
-                name: "NewsItems");
+                name: "NewsItem");
+
+            migrationBuilder.DropTable(
+                name: "Agencies");
+
+            migrationBuilder.DropTable(
+                name: "Departments");
+
+            migrationBuilder.DropTable(
+                name: "Locations");
 
             migrationBuilder.DropTable(
                 name: "Screens");
 
             migrationBuilder.DropTable(
                 name: "Admins");
-
-            migrationBuilder.DropTable(
-                name: "Departments");
-
-            migrationBuilder.DropTable(
-                name: "Agencies");
-
-            migrationBuilder.DropTable(
-                name: "Locations");
         }
     }
 }

@@ -15,80 +15,100 @@ namespace ClassLibrary.Models
         public DbSet<Employee> Employees { get; set; }
         public DbSet<ErrorLog> ErrorLogs { get; set; }
         public DbSet<Admin> Admins { get; set; }
-        public DbSet<MenuItems> MenuItems { get; set; }
         public DbSet<NewsItem> NewsItems { get; set; }
-        public DbSet<NewsItemAgency> NewsItemAgencies { get; set; }
-        public DbSet<NewsItemScreen> NewsItemScreens { get; set; }
-        public DbSet<NewsItemDepartment> NewsItemDepartments { get; set; }
-        public DbSet<NewsItemLocation> NewsItemLocations { get; set; }
-        public DbSet<AllowedIpAddress> AllowedIpAddresses { get; set; }
+        public DbSet<MenuItem> MenuItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Agency relationships - combined into one section
+            // Location relationships
+            modelBuilder.Entity<Location>()
+                .HasOne(l => l.Admin)
+                .WithMany()
+                .HasForeignKey(l => l.AdminId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Agency relationships
             modelBuilder.Entity<Agency>()
                 .HasOne(a => a.Location)
                 .WithMany()
                 .HasForeignKey(a => a.LocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Agency>()
+                .HasOne(a => a.Admin)
+                .WithMany()
+                .HasForeignKey(a => a.AdminId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Department relationships
+            modelBuilder.Entity<Department>()
+                .HasOne(d => d.Location)
+                .WithMany()
+                .HasForeignKey(d => d.LocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Department>()
                 .HasOne(d => d.Agency)
                 .WithMany()
                 .HasForeignKey(d => d.AgencyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Department>()
-                .HasOne(d => d.Location)
-                .WithMany(l => l.Departments)
-                .HasForeignKey(d => d.LocationId)
+            // Employee relationships
+            modelBuilder.Entity<Employee>()
+                .HasOne(e => e.Department)
+                .WithMany()
+                .HasForeignKey(e => e.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Employee>()
+                .HasOne(e => e.Admin)
+                .WithMany()
+                .HasForeignKey(e => e.AdminId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Screen relationships
             modelBuilder.Entity<Screen>()
                 .HasOne(s => s.Location)
-                .WithMany(l => l.Screens)
+                .WithMany()
                 .HasForeignKey(s => s.LocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // NewsItem relationships
-            modelBuilder.Entity<NewsItem>()
-                .HasOne(n => n.Admin)
-                .WithMany(a => a.NewsItems)
-                .HasForeignKey(n => n.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // NewsItem junction tables
-            modelBuilder.Entity<NewsItemAgency>()
-                .HasKey(na => new { na.NewsItemId, na.AgencyId });
-
-            modelBuilder.Entity<NewsItemDepartment>()
-                .HasKey(nd => new { nd.NewsItemId, nd.DepartmentId });
-
-            modelBuilder.Entity<NewsItemLocation>()
-                .HasKey(nl => new { nl.NewsItemId, nl.LocationId });
-
-            modelBuilder.Entity<NewsItemScreen>()
-                .HasKey(ns => new { ns.NewsItemId, ns.ScreenId });
-
-            // AllowedIpAddress configuration
-            modelBuilder.Entity<AllowedIpAddress>()
-                .HasKey(a => a.IpAddress);
-
-            // Add this Admin-Agency relationship configuration
-            modelBuilder.Entity<Agency>()
-                .HasOne(a => a.Admin)
-                .WithMany(admin => admin.Agencies)
-                .HasForeignKey(a => a.AdminId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Add this Admin-Location relationship configuration
-            modelBuilder.Entity<Admin>()
-                .HasOne(a => a.Location)
+            modelBuilder.Entity<Screen>()
+                .HasOne(s => s.Agency)
                 .WithMany()
-                .HasForeignKey(a => a.LocationId)
-                .IsRequired(false) 
+                .HasForeignKey(s => s.AgencyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Screen>()
+                .HasOne(s => s.Department)
+                .WithMany()
+                .HasForeignKey(s => s.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Screen>()
+                .HasOne(s => s.Admin)
+                .WithMany()
+                .HasForeignKey(s => s.AdminId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // NewsItem basic configuration
+            modelBuilder.Entity<NewsItem>()
+                .HasKey(e => e.Id);
+
+            modelBuilder.Entity<NewsItem>()
+                .HasOne(e => e.Admin)
+                .WithMany()
+                .HasForeignKey(e => e.AdminId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // MenuItem basic configuration
+            modelBuilder.Entity<MenuItem>()
+                .HasKey(e => e.Id);
+
+            modelBuilder.Entity<MenuItem>()
+                .HasOne(e => e.Admin)
+                .WithMany()
+                .HasForeignKey(e => e.AdminId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Seed initial admin

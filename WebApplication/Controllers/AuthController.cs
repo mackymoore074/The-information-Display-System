@@ -53,7 +53,7 @@ namespace TheWebApplication.Controllers
                 // Check if the login matches the hardcoded admin
                 if (loginDto.Email == hardcodedAdmin.Email && BCrypt.Net.BCrypt.Verify(loginDto.Password, hardcodedAdmin.PasswordHash))
                 {
-                    var token = await GenerateJwtToken(hardcodedAdmin);
+                    var token = GenerateJwtToken(hardcodedAdmin);
 
                     return Ok(new ApiResponse<AuthResponseDto>
                     {
@@ -96,7 +96,7 @@ namespace TheWebApplication.Controllers
                     });
                 }
 
-                var tokenForDbUser = await GenerateJwtToken(admin);
+                var tokenForDbUser = GenerateJwtToken(admin);
 
                 admin.LastLogin = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
@@ -128,37 +128,27 @@ namespace TheWebApplication.Controllers
             }
         }
 
-        private async Task<string> GenerateJwtToken(Admin admin)
+        private string GenerateJwtToken(Admin admin)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-                _configuration["JwtSettings:Key"])); // Uses a secret key from the app's configuration to secure the token
-            // and This ensures the token is signed and validated securely.
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature); // this Specifies the algorithm (HmacSha512) used to sign the token.
-
-            var claims = new List<Claim>
+            var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()),
-                new Claim(ClaimTypes.Email, admin.Email),
-                new Claim(ClaimTypes.Role, admin.Role.ToString()),
-                new Claim("AgencyId", admin.AgencyId?.ToString() ?? "")
+                new Claim("AdminId", admin.Id.ToString()),
+                new Claim(ClaimTypes.Role, admin.Role.ToString())
             };
 
-            var token = new JwtSecurityToken(                    // Specifies the token's
-                issuer: _configuration["JwtSettings:Issuer"], // Who created the token (e.g., our app or API).
-                audience: _configuration["JwtSettings:Audience"], // Who can use the token (e.g., the client app).
-                claims: claims, // The user's information included in the token.
-                expires: DateTime.Now.AddDays(1), // Sets the token's validity period (1 day in this case).
-                signingCredentials: creds); // Ensures the token is signed and secure.
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:DurationInMinutes"])),
+                signingCredentials: credentials
+            );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-            /* This Converts the JwtSecurityToken into a compact string format for transmission to the client 
-             * The Purpose
-            Generates a secure token for the client.
-            The client uses this token in subsequent API requests as proof of authentication.
-            The server validates the token to ensure the request is from a legitimate user.
-             */
-
         }
 
         private async Task LogErrorToDatabaseAsync(string context, Exception ex)

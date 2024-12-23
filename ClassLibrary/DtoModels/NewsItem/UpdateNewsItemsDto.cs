@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using static ClassLibrary.Models.NewsItem;
+using ClassLibrary.Models;
 
 namespace ClassLibrary.DtoModels.NewsItem
 {

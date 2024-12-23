@@ -12,7 +12,9 @@ namespace ClassLibrary.DtoModels.Location
         public string Address { get; set; } // Physical address
         [JsonPropertyName("datecreated")]
         public DateTime DateCreated { get; set; } // Date the location was created
-
-
+        [JsonPropertyName("adminid")]
+        public int AdminId { get; set; }
+        [JsonPropertyName("adminname")]
+        public string AdminName { get; set; }  // Add this to show admin name
     }
 }

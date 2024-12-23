@@ -22,13 +22,27 @@ namespace TheWebApplication.Controllers
             _logger = logger;
         }
 
+        private int GetCurrentAdminId()
+        {
+            var adminIdClaim = User.Claims.FirstOrDefault(c => c.Type == "AdminId");
+            if (adminIdClaim == null)
+            {
+                throw new UnauthorizedAccessException("Admin ID not found in token");
+            }
+            return int.Parse(adminIdClaim.Value);
+        }
+
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<AgencyDto>>>> GetAgencies()
         {
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+
                 var agencies = await _context.Agencies
                     .Include(a => a.Location)
+                    .Include(a => a.Admin)
+                    .Where(a => a.AdminId == currentAdminId)
                     .Select(a => new AgencyDto
                     {
                         Id = a.Id,
@@ -37,6 +51,7 @@ namespace TheWebApplication.Controllers
                         AdminId = a.AdminId,
                         LocationId = a.LocationId,
                         LocationName = a.Location.Name,
+                        AdminName = $"{a.Admin.FirstName} {a.Admin.LastName}",
                         DateCreated = a.DateCreated
                     })
                     .ToListAsync();
@@ -137,11 +152,26 @@ namespace TheWebApplication.Controllers
 
             try
             {
+                int currentAdminId = GetCurrentAdminId();
+
+                var location = await _context.Locations
+                    .FirstOrDefaultAsync(l => l.Id == createAgencyDto.LocationId);
+
+                if (location == null)
+                {
+                    return BadRequest(new ApiResponse<AgencyDto>
+                    {
+                        Success = false,
+                        Message = "Invalid Location ID.",
+                        Data = null
+                    });
+                }
+
                 var agency = new Agency
                 {
                     Name = createAgencyDto.Name,
                     Description = createAgencyDto.Description,
-                    AdminId = 1,
+                    AdminId = currentAdminId,
                     LocationId = createAgencyDto.LocationId,
                     DateCreated = DateTime.UtcNow
                 };
@@ -194,13 +224,17 @@ namespace TheWebApplication.Controllers
 
             try
             {
-                var agency = await _context.Agencies.FindAsync(id);
+                int currentAdminId = GetCurrentAdminId();
+
+                var agency = await _context.Agencies
+                    .FirstOrDefaultAsync(a => a.Id == id && a.AdminId == currentAdminId);
+
                 if (agency == null)
                 {
                     return NotFound(new ApiResponse<AgencyDto>
                     {
                         Success = false,
-                        Message = $"Agency with ID {id} not found.",
+                        Message = "Agency not found or you don't have permission to update it.",
                         Data = null
                     });
                 }
@@ -247,13 +281,17 @@ namespace TheWebApplication.Controllers
         {
             try
             {
-                var agency = await _context.Agencies.FindAsync(id);
+                int currentAdminId = GetCurrentAdminId();
+
+                var agency = await _context.Agencies
+                    .FirstOrDefaultAsync(a => a.Id == id && a.AdminId == currentAdminId);
+
                 if (agency == null)
                 {
                     return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = $"Agency with ID {id} not found.",
+                        Message = "Agency not found or you don't have permission to delete it.",
                         Data = null
                     });
                 }

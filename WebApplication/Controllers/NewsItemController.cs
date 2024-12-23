@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using ClassLibrary.Models;
-using ClassLibrary.DtoModels.MenuItem;
+using ClassLibrary.DtoModels.NewsItem;
 using ClassLibrary.DtoModels.Common;
 using Microsoft.Extensions.Logging;
 
@@ -15,12 +15,12 @@ namespace WebApplication.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class MenuItemController : ControllerBase
+    public class NewsItemController : ControllerBase
     {
         private readonly ClassDBContext _context;
-        private readonly ILogger<MenuItemController> _logger;
+        private readonly ILogger<NewsItemController> _logger;
 
-        public MenuItemController(ClassDBContext context, ILogger<MenuItemController> logger)
+        public NewsItemController(ClassDBContext context, ILogger<NewsItemController> logger)
         {
             _context = context;
             _logger = logger;
@@ -37,7 +37,7 @@ namespace WebApplication.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<MenuItem>>> Create([FromBody] CreateMenuItemDto createDto)
+        public async Task<ActionResult<ApiResponse<NewsItem>>> Create([FromBody] CreateNewsItemDto createDto)
         {
             try
             {
@@ -45,7 +45,7 @@ namespace WebApplication.Controllers
 
                 if (createDto.TimeOutDate <= DateTime.UtcNow)
                 {
-                    return BadRequest(new ApiResponse<MenuItem>
+                    return BadRequest(new ApiResponse<NewsItem>
                     {
                         Success = false,
                         Message = "TimeOutDate must be in the future",
@@ -53,127 +53,127 @@ namespace WebApplication.Controllers
                     });
                 }
 
-                var menuItem = new MenuItem
+                var newsItem = new NewsItem
                 {
                     Title = createDto.Title,
-                    Description = createDto.Description,
+                    NewsItemBody = createDto.NewsItemBody,
                     TimeOutDate = createDto.TimeOutDate,
-                    Type = createDto.Type,
-                    Price = createDto.Price,
+                    Importance = createDto.Importance,
+                    MoreInformationUrl = createDto.MoreInformationUrl,
                     AdminId = currentAdminId,
                     Departments = createDto.Departments,
                     Screens = createDto.Screens,
                     Locations = createDto.Locations
                 };
 
-                await _context.MenuItems.AddAsync(menuItem);
+                await _context.NewsItems.AddAsync(newsItem);
                 await _context.SaveChangesAsync();
 
-                return Ok(new ApiResponse<MenuItem>
+                return Ok(new ApiResponse<NewsItem>
                 {
                     Success = true,
-                    Message = "Menu item created successfully",
-                    Data = menuItem
+                    Message = "News item created successfully",
+                    Data = newsItem
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error creating menu item: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<MenuItem>
+                _logger.LogError($"Error creating news item: {ex.Message}", ex);
+                return StatusCode(500, new ApiResponse<NewsItem>
                 {
                     Success = false,
-                    Message = "Error creating menu item",
+                    Message = "Error creating news item",
                     Errors = new List<string> { ex.Message }
                 });
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<List<MenuItem>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<List<NewsItem>>>> GetAll()
         {
             try
             {
                 int currentAdminId = GetCurrentAdminId();
-                var menuItems = await _context.MenuItems
-                    .Where(m => m.AdminId == currentAdminId)
-                    .OrderByDescending(m => m.DateCreated)
+                var newsItems = await _context.NewsItems
+                    .Where(n => n.AdminId == currentAdminId)
+                    .OrderByDescending(n => n.DateCreated)
                     .ToListAsync();
 
-                return Ok(new ApiResponse<List<MenuItem>>
+                return Ok(new ApiResponse<List<NewsItem>>
                 {
                     Success = true,
-                    Data = menuItems
+                    Data = newsItems
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error getting menu items: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<List<MenuItem>>
+                _logger.LogError($"Error getting news items: {ex.Message}", ex);
+                return StatusCode(500, new ApiResponse<List<NewsItem>>
                 {
                     Success = false,
-                    Message = "Error retrieving menu items",
+                    Message = "Error retrieving news items",
                     Errors = new List<string> { ex.Message }
                 });
             }
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<MenuItem>>> GetById(int id)
+        public async Task<ActionResult<ApiResponse<NewsItem>>> GetById(int id)
         {
             try
             {
                 int currentAdminId = GetCurrentAdminId();
-                var menuItem = await _context.MenuItems
-                    .FirstOrDefaultAsync(m => m.Id == id && m.AdminId == currentAdminId);
+                var newsItem = await _context.NewsItems
+                    .FirstOrDefaultAsync(n => n.Id == id && n.AdminId == currentAdminId);
 
-                if (menuItem == null)
+                if (newsItem == null)
                 {
-                    return NotFound(new ApiResponse<MenuItem>
+                    return NotFound(new ApiResponse<NewsItem>
                     {
                         Success = false,
-                        Message = "Menu item not found"
+                        Message = "News item not found"
                     });
                 }
 
-                return Ok(new ApiResponse<MenuItem>
+                return Ok(new ApiResponse<NewsItem>
                 {
                     Success = true,
-                    Data = menuItem
+                    Data = newsItem
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error getting menu item: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<MenuItem>
+                _logger.LogError($"Error getting news item: {ex.Message}", ex);
+                return StatusCode(500, new ApiResponse<NewsItem>
                 {
                     Success = false,
-                    Message = "Error retrieving menu item",
+                    Message = "Error retrieving news item",
                     Errors = new List<string> { ex.Message }
                 });
             }
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<MenuItem>>> Update(int id, [FromBody] CreateMenuItemDto updateDto)
+        public async Task<ActionResult<ApiResponse<NewsItem>>> Update(int id, [FromBody] CreateNewsItemDto updateDto)
         {
             try
             {
                 int currentAdminId = GetCurrentAdminId();
-                var menuItem = await _context.MenuItems
-                    .FirstOrDefaultAsync(m => m.Id == id && m.AdminId == currentAdminId);
+                var newsItem = await _context.NewsItems
+                    .FirstOrDefaultAsync(n => n.Id == id && n.AdminId == currentAdminId);
 
-                if (menuItem == null)
+                if (newsItem == null)
                 {
-                    return NotFound(new ApiResponse<MenuItem>
+                    return NotFound(new ApiResponse<NewsItem>
                     {
                         Success = false,
-                        Message = "Menu item not found"
+                        Message = "News item not found"
                     });
                 }
 
                 if (updateDto.TimeOutDate <= DateTime.UtcNow)
                 {
-                    return BadRequest(new ApiResponse<MenuItem>
+                    return BadRequest(new ApiResponse<NewsItem>
                     {
                         Success = false,
                         Message = "TimeOutDate must be in the future",
@@ -181,32 +181,32 @@ namespace WebApplication.Controllers
                     });
                 }
 
-                menuItem.Title = updateDto.Title;
-                menuItem.Description = updateDto.Description;
-                menuItem.TimeOutDate = updateDto.TimeOutDate;
-                menuItem.Type = updateDto.Type;
-                menuItem.Price = updateDto.Price;
-                menuItem.LastUpdated = DateTime.UtcNow;
-                menuItem.Departments = updateDto.Departments;
-                menuItem.Screens = updateDto.Screens;
-                menuItem.Locations = updateDto.Locations;
+                newsItem.Title = updateDto.Title;
+                newsItem.NewsItemBody = updateDto.NewsItemBody;
+                newsItem.TimeOutDate = updateDto.TimeOutDate;
+                newsItem.Importance = updateDto.Importance;
+                newsItem.MoreInformationUrl = updateDto.MoreInformationUrl;
+                newsItem.LastUpdated = DateTime.UtcNow;
+                newsItem.Departments = updateDto.Departments;
+                newsItem.Screens = updateDto.Screens;
+                newsItem.Locations = updateDto.Locations;
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new ApiResponse<MenuItem>
+                return Ok(new ApiResponse<NewsItem>
                 {
                     Success = true,
-                    Message = "Menu item updated successfully",
-                    Data = menuItem
+                    Message = "News item updated successfully",
+                    Data = newsItem
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error updating menu item: {ex.Message}", ex);
-                return StatusCode(500, new ApiResponse<MenuItem>
+                _logger.LogError($"Error updating news item: {ex.Message}", ex);
+                return StatusCode(500, new ApiResponse<NewsItem>
                 {
                     Success = false,
-                    Message = "Error updating menu item",
+                    Message = "Error updating news item",
                     Errors = new List<string> { ex.Message }
                 });
             }
@@ -218,34 +218,34 @@ namespace WebApplication.Controllers
             try
             {
                 int currentAdminId = GetCurrentAdminId();
-                var menuItem = await _context.MenuItems
-                    .FirstOrDefaultAsync(m => m.Id == id && m.AdminId == currentAdminId);
+                var newsItem = await _context.NewsItems
+                    .FirstOrDefaultAsync(n => n.Id == id && n.AdminId == currentAdminId);
 
-                if (menuItem == null)
+                if (newsItem == null)
                 {
                     return NotFound(new ApiResponse<object>
                     {
                         Success = false,
-                        Message = "Menu item not found"
+                        Message = "News item not found"
                     });
                 }
 
-                _context.MenuItems.Remove(menuItem);
+                _context.NewsItems.Remove(newsItem);
                 await _context.SaveChangesAsync();
 
                 return Ok(new ApiResponse<object>
                 {
                     Success = true,
-                    Message = "Menu item deleted successfully"
+                    Message = "News item deleted successfully"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error deleting menu item: {ex.Message}", ex);
+                _logger.LogError($"Error deleting news item: {ex.Message}", ex);
                 return StatusCode(500, new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Error deleting menu item",
+                    Message = "Error deleting news item",
                     Errors = new List<string> { ex.Message }
                 });
             }
