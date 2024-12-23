@@ -8,23 +8,25 @@ namespace ClassLibrary.DtoModels.MenuItem
     public class CreateMenuItemDto
     {
         [Required]
-        [StringLength(100)]
         public string Title { get; set; }
 
         [Required]
-        [StringLength(450)]
         public string Description { get; set; }
+
+        [Required]
+        public decimal Price { get; set; }
+
+        [Required]
+        public MealType Type { get; set; }
 
         [Required]
         public DateTime TimeOutDate { get; set; }
 
-        public MealType Type { get; set; }
-
-        [Range(0, 10000)]
-        public decimal? Price { get; set; }
+        [Required]
+        public int AdminId { get; set; }
 
         public List<int> Departments { get; set; } = new();
-        public List<int> Screens { get; set; } = new();
         public List<int> Locations { get; set; } = new();
+        public List<int> Screens { get; set; } = new();
     }
 }

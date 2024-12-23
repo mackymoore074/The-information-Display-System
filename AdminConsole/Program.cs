@@ -78,6 +78,14 @@ builder.Services.AddScoped<INewsItemService>(sp =>
     return new NewsItemService(httpClient, logger, localStorage);
 });
 
+builder.Services.AddScoped<IMenuItemService>(sp => 
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var logger = sp.GetRequiredService<ILogger<MenuItemService>>();
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    return new MenuItemService(httpClient, logger, localStorage);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
