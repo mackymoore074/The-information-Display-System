@@ -159,11 +159,11 @@
 @code {
     private bool showModal;
     private ScreenDto editingScreen = new();
-    private List<ScreenDto> screens = new();
-    private List<LocationDto> locations = new();
-    private List<DepartmentDto> departments = new();
-    private List<AgencyDto> agencies = new();
-    private List<AgencyDto> filteredAgencies = new();
+    private List<ScreenDto> screens = new List<ScreenDto>();
+    private List<LocationDto> locations = new List<LocationDto>();
+    private List<DepartmentDto> departments = new List<DepartmentDto>();
+    private List<AgencyDto> agencies = new List<AgencyDto>();
+    private List<AgencyDto> filteredAgencies = new List<AgencyDto>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,7 +206,7 @@
         var response = await ScreenService.GetAllAsync();
         if (response.Success)
         {
-            screens = response.Data ?? new();
+            screens = response.Data.ToList();
         }
     }
 

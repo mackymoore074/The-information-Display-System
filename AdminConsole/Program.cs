@@ -70,6 +70,14 @@ builder.Services.AddScoped<IEmployeeService>(sp =>
     return new EmployeeService(httpClient, logger, localStorage);
 });
 
+builder.Services.AddScoped<INewsItemService>(sp => 
+{
+    var httpClient = sp.GetRequiredService<HttpClient>();
+    var logger = sp.GetRequiredService<ILogger<NewsItemService>>();
+    var localStorage = sp.GetRequiredService<ILocalStorageService>();
+    return new NewsItemService(httpClient, logger, localStorage);
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -26,35 +26,48 @@ namespace AdminConsole.Services
             };
         }
 
-        public async Task<ApiResponse<List<DepartmentDto>>> GetDepartmentsAsync()
+        public async Task<ApiResponse<IEnumerable<DepartmentDto>>> GetDepartmentsAsync()
         {
             try
             {
+                _logger.LogInformation("Getting all departments");
+                
                 var token = await _localStorage.GetItemAsync<string>("authToken");
-                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var response = await _httpClient.GetAsync("/api/department");
+                var response = await _httpClient.GetAsync("api/Department");
                 var content = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Department response content: {content}");
 
-                if (!response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogError($"API returned {response.StatusCode}: {content}");
-                    return new ApiResponse<List<DepartmentDto>>
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<IEnumerable<DepartmentDto>>>();
+                    return result ?? new ApiResponse<IEnumerable<DepartmentDto>>
                     {
                         Success = false,
-                        Message = $"API error: {response.StatusCode}"
+                        Message = "Failed to deserialize departments response"
                     };
                 }
-
-                return JsonSerializer.Deserialize<ApiResponse<List<DepartmentDto>>>(content, _jsonOptions);
+                else
+                {
+                    _logger.LogWarning($"Failed to get departments. Status: {response.StatusCode}");
+                    return new ApiResponse<IEnumerable<DepartmentDto>>
+                    {
+                        Success = false,
+                        Message = $"Failed to get departments. Status: {response.StatusCode}",
+                        Errors = new List<string> { content }
+                    };
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in GetDepartmentsAsync: {ex.Message}", ex);
-                return new ApiResponse<List<DepartmentDto>>
+                _logger.LogError($"Error getting departments: {ex.Message}");
+                return new ApiResponse<IEnumerable<DepartmentDto>>
                 {
                     Success = false,
-                    Message = "Error retrieving departments"
+                    Message = "Error getting departments",
+                    Errors = new List<string> { ex.Message }
                 };
             }
         }

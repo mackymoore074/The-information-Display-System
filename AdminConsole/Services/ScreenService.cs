@@ -20,38 +20,48 @@ namespace AdminConsole.Services
             _localStorage = localStorage;
         }
 
-        public async Task<ApiResponse<List<ScreenDto>>> GetAllAsync()
+        public async Task<ApiResponse<IEnumerable<ScreenDto>>> GetAllAsync()
         {
             try
             {
                 _logger.LogInformation("Getting all screens");
-                var response = await _httpClient.GetAsync("api/screen");
                 
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.GetAsync("api/Screen");
+                var content = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Screen response content: {content}");
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<ScreenDto>>>();
-                    return result ?? new ApiResponse<List<ScreenDto>> 
-                    { 
-                        Success = false, 
-                        Message = "Failed to deserialize response",
-                        Data = new List<ScreenDto>() 
+                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<IEnumerable<ScreenDto>>>();
+                    return result ?? new ApiResponse<IEnumerable<ScreenDto>>
+                    {
+                        Success = false,
+                        Message = "Failed to deserialize screens response"
                     };
                 }
-                
-                return new ApiResponse<List<ScreenDto>>
+                else
                 {
-                    Success = false,
-                    Message = $"Error: {response.StatusCode} - {response.ReasonPhrase}"
-                };
+                    _logger.LogWarning($"Failed to get screens. Status: {response.StatusCode}");
+                    return new ApiResponse<IEnumerable<ScreenDto>>
+                    {
+                        Success = false,
+                        Message = $"Failed to get screens. Status: {response.StatusCode}",
+                        Errors = new List<string> { content }
+                    };
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting screens");
-                return new ApiResponse<List<ScreenDto>> 
-                { 
-                    Success = false, 
-                    Message = ex.Message,
-                    Data = new List<ScreenDto>() 
+                _logger.LogError($"Error getting screens: {ex.Message}");
+                return new ApiResponse<IEnumerable<ScreenDto>>
+                {
+                    Success = false,
+                    Message = "Error getting screens",
+                    Errors = new List<string> { ex.Message }
                 };
             }
         }
