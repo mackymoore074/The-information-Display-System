@@ -12,14 +12,17 @@ namespace AdminConsole.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<MenuItemService> _logger;
         private readonly ILocalStorageService _localStorage;
+        private readonly IEmailService _emailService;
 
         public MenuItemService(HttpClient httpClient, 
             ILogger<MenuItemService> logger,
-            ILocalStorageService localStorage)
+            ILocalStorageService localStorage,
+            IEmailService emailService)
         {
             _httpClient = httpClient;
             _logger = logger;
             _localStorage = localStorage;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<List<MenuItem>>> GetAllMenuItemsAsync()
@@ -85,6 +88,23 @@ namespace AdminConsole.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<ApiResponse<MenuItem>>();
+                    
+                    if (result?.Success == true)
+                    {
+                        // Send email notification
+                        var emailSubject = $"New Menu Item: {menuItem.Title}";
+                        var emailBody = $@"
+                            A new menu item has been posted:
+                            Title: {menuItem.Title}
+                            Description: {menuItem.Description}
+                            Type: {menuItem.Type}
+                            Price: {menuItem.Price:C}
+                            Time Out Date: {menuItem.TimeOutDate:g}
+                        ";
+
+                        await _emailService.SendEmailToStaffAsync(emailSubject, emailBody);
+                    }
+
                     return result ?? new ApiResponse<MenuItem>
                     {
                         Success = false,
