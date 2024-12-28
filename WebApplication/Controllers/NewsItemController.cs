@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using ClassLibrary.Models;
 using ClassLibrary.DtoModels.NewsItem;
+using ClassLibrary.DtoModels.Email;
 using ClassLibrary.DtoModels.Common;
 using Microsoft.Extensions.Logging;
 
@@ -19,11 +20,13 @@ namespace WebApplication.Controllers
     {
         private readonly ClassDBContext _context;
         private readonly ILogger<NewsItemController> _logger;
+        private readonly IEmailRepository _emailRepository;
 
-        public NewsItemController(ClassDBContext context, ILogger<NewsItemController> logger)
+        public NewsItemController(ClassDBContext context, ILogger<NewsItemController> logger, IEmailRepository emailRepository)
         {
             _context = context;
             _logger = logger;
+            _emailRepository = emailRepository;
         }
 
         private int GetCurrentAdminId()
@@ -68,6 +71,19 @@ namespace WebApplication.Controllers
 
                 await _context.NewsItems.AddAsync(newsItem);
                 await _context.SaveChangesAsync();
+
+                var emailDto = new EmailDto
+                {
+                    Subject = $"New News Item: {createDto.Title}",
+                    Body = $@"
+                        A new news item has been posted:
+                        Title: {createDto.Title}
+                        Content: {createDto.NewsItemBody}
+                        Time Out Date: {createDto.TimeOutDate:g}
+                    "
+                };
+
+                await _emailRepository.SendEmailToStaffAsync(emailDto);
 
                 return Ok(new ApiResponse<NewsItem>
                 {

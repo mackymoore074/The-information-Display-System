@@ -11,6 +11,7 @@ using TheWebApplication.Security;
 using ClassLibrary.Models;
 using ClassLibrary.DtoModels.Common;
 using ClassLibrary;
+using WebApplication.Repository;
 
 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
 
@@ -125,6 +126,7 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+builder.Services.AddScoped<IEmailRepository, EmailRepository>();
 
 var app = builder.Build();
 

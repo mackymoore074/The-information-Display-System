@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Email;
 using ClassLibrary.DtoModels.MenuItem;
 using ClassLibrary.DtoModels.Common;
 using Microsoft.Extensions.Logging;
+
 
 namespace WebApplication.Controllers
 {
@@ -19,11 +21,16 @@ namespace WebApplication.Controllers
     {
         private readonly ClassDBContext _context;
         private readonly ILogger<MenuItemController> _logger;
+        private readonly IEmailRepository _emailRepository;
 
-        public MenuItemController(ClassDBContext context, ILogger<MenuItemController> logger)
+        public MenuItemController(
+            ClassDBContext context, 
+            ILogger<MenuItemController> logger,
+            IEmailRepository emailRepository)
         {
             _context = context;
             _logger = logger;
+            _emailRepository = emailRepository;
         }
 
         private int GetCurrentAdminId()
@@ -68,6 +75,21 @@ namespace WebApplication.Controllers
 
                 await _context.MenuItems.AddAsync(menuItem);
                 await _context.SaveChangesAsync();
+
+                var emailDto = new EmailDto
+                {
+                    Subject = $"New Menu Item: {createDto.Title}",
+                    Body = $@"
+                        A new menu item has been posted:
+                        Title: {createDto.Title}
+                        Description: {createDto.Description}
+                        Price: {createDto.Price:C}
+                        Type: {createDto.Type}
+                        Time Out Date: {createDto.TimeOutDate:g}
+                    "
+                };
+
+                await _emailRepository.SendEmailToStaffAsync(emailDto);
 
                 return Ok(new ApiResponse<MenuItem>
                 {
