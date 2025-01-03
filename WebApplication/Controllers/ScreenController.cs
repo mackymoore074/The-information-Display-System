@@ -6,6 +6,10 @@ using ClassLibrary.DtoModels.Common;
 using System.Text.Encodings.Web;
 using ClassLibrary.DtoModels.Screen;
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace TheWebApplication.Controllers
 {
@@ -16,11 +20,13 @@ namespace TheWebApplication.Controllers
     {
         private readonly ClassDBContext _context;
         private readonly ILogger<ScreenController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public ScreenController(ClassDBContext context, ILogger<ScreenController> logger)
+        public ScreenController(ClassDBContext context, ILogger<ScreenController> logger, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
+            _configuration = configuration;
         }
 
         private int GetCurrentAdminId()
@@ -443,6 +449,131 @@ namespace TheWebApplication.Controllers
             {
                 _logger.LogError($"Failed to log error to database: {logEx.Message}", logEx);
             }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public async Task<ActionResult<ApiResponse<string>>> Login([FromBody] LoginScreenDto loginDto)
+        {
+            try
+            {
+                var screen = await _context.Screens
+                    .FirstOrDefaultAsync(s => 
+                        s.Name == loginDto.ScreenName && 
+                        s.MACAddress == loginDto.MacAddress);
+
+                if (screen == null)
+                {
+                    return Unauthorized(new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = "Invalid screen credentials"
+                    });
+                }
+
+                var token = GenerateJwtToken(screen);
+
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Message = "Login successful",
+                    Data = token
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error in screen login", ex);
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Error during login",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
+        }
+
+        [Authorize]
+        [HttpGet("news-items")]
+        public async Task<ActionResult<ApiResponse<List<NewsItem>>>> GetNewsItems()
+        {
+            try
+            {
+                var currentTime = DateTime.UtcNow;
+                var newsItems = await _context.NewsItems
+                    .Where(n => n.TimeOutDate > currentTime)
+                    .OrderByDescending(n => n.DateCreated)
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<NewsItem>>
+                {
+                    Success = true,
+                    Data = newsItems
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error getting news items", ex);
+                return StatusCode(500, new ApiResponse<List<NewsItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving news items",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
+        }
+
+        [Authorize]
+        [HttpGet("menu-items")]
+        public async Task<ActionResult<ApiResponse<List<MenuItem>>>> GetMenuItems()
+        {
+            try
+            {
+                var currentTime = DateTime.UtcNow;
+                var menuItems = await _context.MenuItems
+                    .Where(m => m.TimeOutDate > currentTime)
+                    .OrderByDescending(m => m.DateCreated)
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<MenuItem>>
+                {
+                    Success = true,
+                    Data = menuItems
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error getting menu items", ex);
+                return StatusCode(500, new ApiResponse<List<MenuItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving menu items",
+                    Errors = new List<string> { ex.Message }
+                });
+            }
+        }
+
+        private string GenerateJwtToken(Screen screen)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, screen.Name),
+                new Claim("ScreenId", screen.Id.ToString()),
+                new Claim("MacAddress", screen.MACAddress)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var expires = DateTime.Now.AddDays(Convert.ToDouble(_configuration["JwtSettings:ExpirationInDays"]));
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: expires,
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

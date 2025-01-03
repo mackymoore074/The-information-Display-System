@@ -1,0 +1,124 @@
+@page "/display"
+@attribute [Authorize]
+@using Blazored.LocalStorage
+@using DsplayScreen.IService
+@using ClassLibrary.Models
+@inject IScreenService ScreenService
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- News Items Section -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>News Items</h3>
+                </div>
+                <div class="card-body">
+                    @if (newsItems == null)
+                    {
+                        <p>Loading news items...</p>
+                    }
+                    else if (!newsItems.Any())
+                    {
+                        <p>No news items available.</p>
+                    }
+                    else
+                    {
+                        @foreach (var item in newsItems)
+                        {
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">@item.Title</h5>
+                                    <p class="card-text">@item.NewsItemBody</p>
+                                    <div class="text-muted">
+                                        <small>Expires: @item.TimeOutDate.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Items Section -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Menu Items</h3>
+                </div>
+                <div class="card-body">
+                    @if (menuItems == null)
+                    {
+                        <p>Loading menu items...</p>
+                    }
+                    else if (!menuItems.Any())
+                    {
+                        <p>No menu items available.</p>
+                    }
+                    else
+                    {
+                        @foreach (var item in menuItems)
+                        {
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">@item.Title</h5>
+                                    <p class="card-text">@item.Description</p>
+                                    <p class="card-text">
+                                        <strong>Price:</strong> @item.Price.ToString()
+                                        <br />
+                                        <strong>Type:</strong> @item.Type
+                                    </p>
+                                    <div class="text-muted">
+                                        <small>Expires: @item.TimeOutDate.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<NewsItem> newsItems;
+    private List<MenuItem> menuItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        // Set up timer to refresh data periodically
+        var timer = new System.Threading.Timer(async _ =>
+        {
+            await LoadData();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var newsResponse = await ScreenService.GetNewsItemsAsync();
+            if (newsResponse.Success)
+            {
+                newsItems = newsResponse.Data;
+            }
+
+            var menuResponse = await ScreenService.GetMenuItemsAsync();
+            if (menuResponse.Success)
+            {
+                menuItems = menuResponse.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error (maybe show a toast notification)
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+} 
