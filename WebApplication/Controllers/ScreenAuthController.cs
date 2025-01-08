@@ -30,26 +30,39 @@ namespace WebApplication.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<ApiResponse<string>>> Login([FromBody] LoginScreenDto loginDto)
+        public async Task<ActionResult<ApiResponse<string>>> ScreenLogin([FromBody] LoginScreenDto loginDto)
         {
             try
             {
-                _logger.LogInformation($"Screen login attempt - Name: {loginDto.ScreenName}, MAC: {loginDto.MacAddress}");
+                _logger.LogInformation($"Login attempt with MAC: {loginDto.MACAddress}");
+                
+                var screenPassword = _configuration["ScreenSettings:Password"];
+                _logger.LogInformation($"Configured password: {screenPassword}");
+
+                if (loginDto.Password != screenPassword)
+                {
+                    _logger.LogWarning($"Invalid password for MAC: {loginDto.MACAddress}");
+                    return BadRequest(new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = "Invalid credentials"
+                    });
+                }
 
                 var screen = await _context.Screens
-                    .FirstOrDefaultAsync(s => 
-                        s.Name.ToLower() == loginDto.ScreenName.ToLower() && 
-                        s.MACAddress.ToLower() == loginDto.MacAddress.ToLower());
+                    .FirstOrDefaultAsync(s => s.MACAddress == loginDto.MACAddress);
 
                 if (screen == null)
                 {
-                    return Unauthorized(new ApiResponse<string>
+                    _logger.LogWarning($"No screen found with MAC: {loginDto.MACAddress}");
+                    return BadRequest(new ApiResponse<string>
                     {
                         Success = false,
-                        Message = "Authentication failed",
-                        Errors = new List<string> { "Invalid screen credentials" }
+                        Message = "Screen not found"
                     });
                 }
+
+                _logger.LogInformation($"Screen found: {screen.Name}");
 
                 var token = GenerateJwtToken(screen);
 
@@ -62,12 +75,11 @@ namespace WebApplication.Controllers
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Login error", ex);
+                _logger.LogError($"Error in screen login: {ex.Message}");
                 return StatusCode(500, new ApiResponse<string>
                 {
                     Success = false,
-                    Message = "Internal server error",
-                    Errors = new List<string> { "An unexpected error occurred" }
+                    Message = "Error processing login request"
                 });
             }
         }

@@ -4,7 +4,9 @@ namespace ClassLibrary.DtoModels.Screen
 {
     public class LoginScreenDto
     {
-        public string ScreenName { get; set; }
-        public string MacAddress { get; set; }
+        [Required]
+        public string MACAddress { get; set; } = string.Empty;
+        [Required]
+        public string Password { get; set; } = string.Empty;
     }
 } 

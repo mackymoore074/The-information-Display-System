@@ -454,18 +454,16 @@ namespace TheWebApplication.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<string>>> Login([FromBody] LoginScreenDto loginDto)
         {
-            _logger.LogInformation("Login attempt for screen: {ScreenName}", loginDto.ScreenName);
+            _logger.LogInformation($"Screen login attempt for MAC: {loginDto.MACAddress}");
 
             try
             {
                 var screen = await _context.Screens
-                    .FirstOrDefaultAsync(s => 
-                        s.Name.ToLower() == loginDto.ScreenName.ToLower() && 
-                        s.MACAddress.ToLower() == loginDto.MacAddress.ToLower());
+                    .FirstOrDefaultAsync(s => s.MACAddress == loginDto.MACAddress);
 
                 if (screen == null)
                 {
-                    _logger.LogWarning("Invalid login attempt for screen: {ScreenName}", loginDto.ScreenName);
+                    _logger.LogWarning("Invalid login attempt for screen: {ScreenName}", loginDto.MACAddress);
                     return Unauthorized(new ApiResponse<string>
                     {
                         Success = false,
@@ -473,7 +471,7 @@ namespace TheWebApplication.Controllers
                     });
                 }
 
-                _logger.LogInformation("Successful login for screen: {ScreenName}", loginDto.ScreenName);
+                _logger.LogInformation("Successful login for screen: {ScreenName}", loginDto.MACAddress);
                 var token = GenerateJwtToken(screen);
 
                 return Ok(new ApiResponse<string>

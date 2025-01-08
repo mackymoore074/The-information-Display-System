@@ -134,19 +134,26 @@ namespace TheWebApplication.Controllers
         {
             try
             {
-                _logger.LogInformation($"Screen login attempt - Name: {loginDto.ScreenName}");
+                var screenPassword = _configuration["ScreenSettings:Password"];
+                _logger.LogError($"Screen Password: {screenPassword}");
+                if (loginDto.Password != screenPassword)
+                {
+                    return BadRequest(new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = "Invalid credentials"
+                    });
+                }
 
                 var screen = await _context.Screens
-                    .FirstOrDefaultAsync(s => 
-                        s.Name.ToLower() == loginDto.ScreenName.ToLower() && 
-                        s.MACAddress.ToLower() == loginDto.MacAddress.ToLower());
+                    .FirstOrDefaultAsync(s => s.MACAddress == loginDto.MACAddress);
 
                 if (screen == null)
                 {
-                    return Unauthorized(new ApiResponse<string>
+                    return BadRequest(new ApiResponse<string>
                     {
                         Success = false,
-                        Message = "Invalid screen credentials"
+                        Message = "Screen not found"
                     });
                 }
 
@@ -180,11 +187,11 @@ namespace TheWebApplication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Screen login error: {ex.Message}");
+                _logger.LogError($"Error in screen login: {ex.Message}");
                 return StatusCode(500, new ApiResponse<string>
                 {
                     Success = false,
-                    Message = "Error during screen authentication"
+                    Message = "Error processing login request"
                 });
             }
         }

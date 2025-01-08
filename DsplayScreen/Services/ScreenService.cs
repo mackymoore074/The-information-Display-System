@@ -30,7 +30,7 @@ namespace DsplayScreen.Services
         {
             try
             {
-                _logger.LogInformation($"Attempting login for screen: {loginDto.ScreenName}");
+                _logger.LogInformation($"Attempting login for screen: {loginDto.MACAddress}");
                 
                 var response = await _httpClient.PostAsJsonAsync("api/auth/screen/login", loginDto);
                 var content = await response.Content.ReadAsStringAsync();

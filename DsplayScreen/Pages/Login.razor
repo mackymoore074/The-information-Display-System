@@ -20,15 +20,15 @@
                         <DataAnnotationsValidator />
                         
                         <div class="mb-3">
-                            <label class="form-label">Screen Name</label>
-                            <InputText @bind-Value="loginModel.ScreenName" class="form-control" />
-                            <ValidationMessage For="@(() => loginModel.ScreenName)" />
+                            <label class="form-label">MAC Address</label>
+                            <InputText @bind-Value="loginModel.MACAddress" class="form-control" />
+                            <ValidationMessage For="@(() => loginModel.MACAddress)" />
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">MAC Address</label>
-                            <InputText @bind-Value="loginModel.MacAddress" class="form-control" />
-                            <ValidationMessage For="@(() => loginModel.MacAddress)" />
+                            <label class="form-label">Password</label>
+                            <InputText @bind-Value="loginModel.Password" class="form-control" type="password" />
+                            <ValidationMessage For="@(() => loginModel.Password)" />
                         </div>
 
                         @if (!string.IsNullOrEmpty(errorMessage))
