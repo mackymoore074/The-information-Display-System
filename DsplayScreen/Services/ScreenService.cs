@@ -76,27 +76,66 @@ namespace DsplayScreen.Services
                 _httpClient.DefaultRequestHeaders.Authorization = 
                     new AuthenticationHeaderValue("Bearer", token);
 
+                // Try to get fresh data from backend
                 var response = await _httpClient.GetAsync("api/screenauth/news-items");
                 
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<NewsItem>>>();
-                    return result;
+                    if (result.Success && result.Data != null)
+                    {
+                        // Store fresh data in localStorage
+                        await _localStorage.SetItemAsync("cached_news_items", result.Data);
+                        await _localStorage.SetItemAsync("news_items_last_updated", DateTime.Now);
+                        return result;
+                    }
+                }
+
+                // If backend call fails, try to get cached data
+                var cachedData = await _localStorage.GetItemAsync<List<NewsItem>>("cached_news_items");
+                var lastUpdated = await _localStorage.GetItemAsync<DateTime>("news_items_last_updated");
+
+                if (cachedData != null)
+                {
+                    _logger.LogInformation($"Using cached news items from {lastUpdated}");
+                    return new ApiResponse<List<NewsItem>>
+                    {
+                        Success = true,
+                        Data = cachedData,
+                        Message = $"Using cached data from {lastUpdated}"
+                    };
                 }
 
                 return new ApiResponse<List<NewsItem>>
                 {
                     Success = false,
-                    Message = $"HTTP Error: {response.StatusCode}"
+                    Message = "No data available"
                 };
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error getting news items: {ex.Message}");
+                _logger.LogError($"Error in GetNewsItemsAsync: {ex.Message}");
+                
+                // Try to get cached data in case of any error
+                var cachedData = await _localStorage.GetItemAsync<List<NewsItem>>("cached_news_items");
+                var lastUpdated = await _localStorage.GetItemAsync<DateTime>("news_items_last_updated");
+
+                if (cachedData != null)
+                {
+                    _logger.LogInformation($"Using cached news items from {lastUpdated}");
+                    return new ApiResponse<List<NewsItem>>
+                    {
+                        Success = true,
+                        Data = cachedData,
+                        Message = $"Using cached data from {lastUpdated}"
+                    };
+                }
+
                 return new ApiResponse<List<NewsItem>>
                 {
                     Success = false,
-                    Message = ex.Message
+                    Message = "Error getting news items and no cached data available",
+                    Errors = new List<string> { ex.Message }
                 };
             }
         }
@@ -106,50 +145,68 @@ namespace DsplayScreen.Services
             try
             {
                 var token = await _localStorage.GetItemAsync<string>("authToken");
-                _logger.LogInformation($"Token found: {!string.IsNullOrEmpty(token)}");
-
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("No token found in local storage");
-                    return new ApiResponse<List<MenuItem>>
-                    {
-                        Success = false,
-                        Message = "No authentication token found"
-                    };
-                }
-
                 _httpClient.DefaultRequestHeaders.Authorization = 
                     new AuthenticationHeaderValue("Bearer", token);
 
-                _logger.LogInformation("Calling menu-items endpoint...");
+                // Try to get fresh data from backend
                 var response = await _httpClient.GetAsync("api/screenauth/menu-items");
-                var content = await response.Content.ReadAsStringAsync();
                 
-                _logger.LogInformation($"Response Status: {response.StatusCode}");
-                _logger.LogInformation($"Response Content: {content}");
-
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<MenuItem>>>();
-                    _logger.LogInformation($"Successfully deserialized {result?.Data?.Count ?? 0} menu items");
-                    return result;
+                    if (result.Success && result.Data != null)
+                    {
+                        // Store fresh data in localStorage
+                        await _localStorage.SetItemAsync("cached_menu_items", result.Data);
+                        await _localStorage.SetItemAsync("menu_items_last_updated", DateTime.Now);
+                        return result;
+                    }
+                }
+
+                // If backend call fails, try to get cached data
+                var cachedData = await _localStorage.GetItemAsync<List<MenuItem>>("cached_menu_items");
+                var lastUpdated = await _localStorage.GetItemAsync<DateTime>("menu_items_last_updated");
+
+                if (cachedData != null)
+                {
+                    _logger.LogInformation($"Using cached menu items from {lastUpdated}");
+                    return new ApiResponse<List<MenuItem>>
+                    {
+                        Success = true,
+                        Data = cachedData,
+                        Message = $"Using cached data from {lastUpdated}"
+                    };
                 }
 
                 return new ApiResponse<List<MenuItem>>
                 {
                     Success = false,
-                    Message = $"HTTP Error: {response.StatusCode}",
-                    Errors = new List<string> { content }
+                    Message = "No data available"
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error in GetMenuItemsAsync: {ex.Message}");
-                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                
+                // Try to get cached data in case of any error
+                var cachedData = await _localStorage.GetItemAsync<List<MenuItem>>("cached_menu_items");
+                var lastUpdated = await _localStorage.GetItemAsync<DateTime>("menu_items_last_updated");
+
+                if (cachedData != null)
+                {
+                    _logger.LogInformation($"Using cached menu items from {lastUpdated}");
+                    return new ApiResponse<List<MenuItem>>
+                    {
+                        Success = true,
+                        Data = cachedData,
+                        Message = $"Using cached data from {lastUpdated}"
+                    };
+                }
+
                 return new ApiResponse<List<MenuItem>>
                 {
                     Success = false,
-                    Message = "Error getting menu items",
+                    Message = "Error getting menu items and no cached data available",
                     Errors = new List<string> { ex.Message }
                 };
             }
