@@ -12,8 +12,19 @@ using ClassLibrary.Models;
 using ClassLibrary.DtoModels.Common;
 using ClassLibrary;
 using WebApplication.Repository;
+using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.Extensions.Logging;
 
 var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
+
+// Add HTTP logging
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = HttpLoggingFields.All;
+    logging.RequestHeaders.Add("Authorization");
+    logging.RequestHeaders.Add("Content-Type");
+    logging.MediaTypeOptions.AddText("application/json");
+});
 
 // Add services to the container.
 
@@ -22,8 +33,8 @@ builder.Services.AddScoped<IPasswordHasher<Admin>, PasswordHasher<Admin>>();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
 // Add DbContext for EF Core
@@ -60,70 +71,50 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 // Add JWT Authentication
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"])),
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-        ValidAudience = builder.Configuration["JwtSettings:Audience"]
-    };
-
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            context.NoResult();
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            
-            var response = new ApiResponse<object>
-            {
-                Success = false,
-                Message = "Authentication failed",
-                Data = null,
-                Errors = new List<string> { context.Exception.Message }
-            };
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]))
+        };
 
-            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
-        },
-        OnChallenge = context =>
+        options.Events = new JwtBearerEvents
         {
-            context.HandleResponse();
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            
-            var response = new ApiResponse<object>
+            OnChallenge = async context =>
             {
-                Success = false,
-                Message = "Unauthorized access",
-                Data = null,
-                Errors = new List<string> { "You are not authorized to access this resource" }
-            };
+                context.HandleResponse();
+                
+                var payload = new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Unauthorized access"
+                };
 
-            return context.Response.WriteAsync(JsonSerializer.Serialize(response));
-        }
-    };
-});
+                await context.Response.WriteAsJsonAsync(payload);
+            }
+        };
+    });
 
 builder.Services.AddScoped<CustomJwtBearerEvents>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", policy =>
-        policy.WithOrigins("https://localhost:7218", "http://localhost:5059") // Use separate strings for each origin
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+        policy.WithOrigins(
+            "https://localhost:7218",  // AdminConsole
+            "http://localhost:5059",   // AdminConsole HTTP
+            "https://localhost:7139",  // DsplayScreen
+            "http://localhost:5139"    // DsplayScreen HTTP
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 });
 
 builder.Services.AddScoped<IEmailRepository, EmailRepository>();
@@ -193,6 +184,45 @@ app.Use(async (context, next) =>
     }
 
     await next();
+});
+
+// Enable HTTP logging middleware (place this early in the pipeline)
+app.UseHttpLogging();
+
+// Configure CORS (if needed)
+app.UseCors(x => x
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
+
+// Add endpoint logging
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Incoming request: {Method} {Path}", 
+        context.Request.Method, 
+        context.Request.Path);
+    
+    await next();
+    
+    logger.LogInformation("Response status code: {StatusCode}", 
+        context.Response.StatusCode);
+});
+
+// Add this BEFORE any other middleware
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("==================================================");
+    Console.WriteLine($"INCOMING REQUEST: {DateTime.Now}");
+    Console.WriteLine($"Path: {context.Request.Path}");
+    Console.WriteLine($"Method: {context.Request.Method}");
+    Console.WriteLine($"QueryString: {context.Request.QueryString}");
+    Console.WriteLine("==================================================");
+
+    await next();
+
+    Console.WriteLine($"RESPONSE STATUS: {context.Response.StatusCode}");
+    Console.WriteLine("==================================================");
 });
 
 // Run the application

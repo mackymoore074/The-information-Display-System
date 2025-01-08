@@ -2,10 +2,12 @@
 @layout LoginLayout
 @using DsplayScreen.Auth
 @using DsplayScreen.IService
+@using ClassLibrary.DtoModels.Screen
 @inject ILocalStorageService LocalStorage
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IScreenService ScreenService
+@inject ILogger<Login> Logger
 
 <div class="container">
     <div class="row justify-content-center">
@@ -50,22 +52,25 @@
     {
         try
         {
+            Logger.LogInformation("Attempting login...");
             var response = await ScreenService.LoginAsync(loginModel);
+            Console.WriteLine($"Response: {response}");
             if (response.Success)
             {
-                await LocalStorage.SetItemAsync("screenToken", response.Data);
-                await LocalStorage.SetItemAsStringAsync("authToken", "your-token-here");
+                await LocalStorage.SetItemAsStringAsync("authToken", response.Data);
                 ((CustomAuthStateProvider)AuthStateProvider).NotifyAuthenticationStateChanged();
                 NavigationManager.NavigateTo("/");
             }
             else
             {
                 errorMessage = response.Message;
+                Logger.LogWarning($"Login failed: {response.Message}");
             }
         }
         catch (Exception ex)
         {
             errorMessage = "An error occurred while logging in.";
+            Logger.LogError($"Login error: {ex.Message}");
         }
     }
 } 

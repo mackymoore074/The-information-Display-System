@@ -26,8 +26,8 @@ namespace ClassLibrary.Models
 
         public MealType Type { get; set; }  // Breakfast, Lunch, Dinner, etc.
 
-        [Range(0, 10000)]
-        public decimal? Price { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Price { get; set; }
 
         [Required]
         public int AdminId { get; set; }

@@ -15,7 +15,6 @@ namespace TheWebApplication.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class ScreenController : ControllerBase
     {
         private readonly ClassDBContext _context;
@@ -455,15 +454,18 @@ namespace TheWebApplication.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<string>>> Login([FromBody] LoginScreenDto loginDto)
         {
+            _logger.LogInformation("Login attempt for screen: {ScreenName}", loginDto.ScreenName);
+
             try
             {
                 var screen = await _context.Screens
                     .FirstOrDefaultAsync(s => 
-                        s.Name == loginDto.ScreenName && 
-                        s.MACAddress == loginDto.MacAddress);
+                        s.Name.ToLower() == loginDto.ScreenName.ToLower() && 
+                        s.MACAddress.ToLower() == loginDto.MacAddress.ToLower());
 
                 if (screen == null)
                 {
+                    _logger.LogWarning("Invalid login attempt for screen: {ScreenName}", loginDto.ScreenName);
                     return Unauthorized(new ApiResponse<string>
                     {
                         Success = false,
@@ -471,6 +473,7 @@ namespace TheWebApplication.Controllers
                     });
                 }
 
+                _logger.LogInformation("Successful login for screen: {ScreenName}", loginDto.ScreenName);
                 var token = GenerateJwtToken(screen);
 
                 return Ok(new ApiResponse<string>
@@ -482,7 +485,7 @@ namespace TheWebApplication.Controllers
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in screen login", ex);
+                _logger.LogError(ex, "Error in screen login");
                 return StatusCode(500, new ApiResponse<string>
                 {
                     Success = false,

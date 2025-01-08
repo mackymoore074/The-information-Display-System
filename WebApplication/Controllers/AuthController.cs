@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using ClassLibrary.Models;
 using ClassLibrary.DtoModels.Authorization;
+using ClassLibrary.DtoModels.Screen;
 using ClassLibrary.API;
 
 namespace TheWebApplication.Controllers
@@ -128,6 +129,66 @@ namespace TheWebApplication.Controllers
             }
         }
 
+        [HttpPost("screen/login")]
+        public async Task<ActionResult<ApiResponse<string>>> ScreenLogin([FromBody] LoginScreenDto loginDto)
+        {
+            try
+            {
+                _logger.LogInformation($"Screen login attempt - Name: {loginDto.ScreenName}");
+
+                var screen = await _context.Screens
+                    .FirstOrDefaultAsync(s => 
+                        s.Name.ToLower() == loginDto.ScreenName.ToLower() && 
+                        s.MACAddress.ToLower() == loginDto.MacAddress.ToLower());
+
+                if (screen == null)
+                {
+                    return Unauthorized(new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = "Invalid screen credentials"
+                    });
+                }
+
+                // Generate token with Screen role
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.Name, screen.Name),
+                    new Claim("ScreenId", screen.Id.ToString()),
+                    new Claim(ClaimTypes.Role, "Screen")  // Add this role claim
+                };
+
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                var token = new JwtSecurityToken(
+                    issuer: _configuration["JwtSettings:Issuer"],
+                    audience: _configuration["JwtSettings:Audience"],
+                    claims: claims,
+                    expires: DateTime.Now.AddDays(Convert.ToDouble(_configuration["JwtSettings:ExpirationInDays"])),
+                    signingCredentials: creds
+                );
+
+                var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+                return Ok(new ApiResponse<string>
+                {
+                    Success = true,
+                    Data = tokenString,
+                    Message = "Screen authenticated successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Screen login error: {ex.Message}");
+                return StatusCode(500, new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "Error during screen authentication"
+                });
+            }
+        }
+
         private string GenerateJwtToken(Admin admin)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
@@ -145,6 +206,30 @@ namespace TheWebApplication.Controllers
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:DurationInMinutes"])),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private string GenerateJwtToken(Screen screen)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, screen.Name),
+                new Claim("ScreenId", screen.Id.ToString()),
+                new Claim("MacAddress", screen.MACAddress),
+                new Claim(ClaimTypes.Role, "Screen")
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddDays(Convert.ToDouble(_configuration["JwtSettings:ExpirationInDays"])),
                 signingCredentials: credentials
             );
 

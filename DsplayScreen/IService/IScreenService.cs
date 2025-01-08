@@ -7,7 +7,7 @@ namespace DsplayScreen.IService
     public interface IScreenService
     {
         Task<ApiResponse<string>> LoginAsync(LoginScreenDto loginDto);
-        Task<ApiResponse<List<NewsItem>>> GetNewsItemsAsync();
         Task<ApiResponse<List<MenuItem>>> GetMenuItemsAsync();
+        Task<ApiResponse<List<NewsItem>>> GetNewsItemsAsync();
     }
 } 
