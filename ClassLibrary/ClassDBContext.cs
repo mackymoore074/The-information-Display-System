@@ -17,6 +17,7 @@ namespace ClassLibrary.Models
         public DbSet<Admin> Admins { get; set; }
         public DbSet<NewsItem> NewsItems { get; set; }
         public DbSet<MenuItem> MenuItems { get; set; }
+        public DbSet<DisplayTracker> DisplayTrackers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -160,6 +161,12 @@ namespace ClassLibrary.Models
                     LastLogin = DateTime.UtcNow
                 }
             );
+
+            modelBuilder.Entity<DisplayTracker>()
+                .HasOne(dt => dt.Screen)
+                .WithMany()
+                .HasForeignKey(dt => dt.ScreenId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

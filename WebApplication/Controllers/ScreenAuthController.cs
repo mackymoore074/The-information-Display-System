@@ -155,6 +155,56 @@ namespace WebApplication.Controllers
             }
         }
 
+        [HttpPost("track-displays")]
+        [Authorize(Roles = "Screen")]
+        public async Task<ActionResult<ApiResponse<bool>>> TrackDisplays([FromBody] List<DisplayTracker> displays)
+        {
+            try
+            {
+                if (displays == null || !displays.Any())
+                {
+                    _logger.LogWarning("Received empty or null display tracking data");
+                    return BadRequest(new ApiResponse<bool>
+                    {
+                        Success = false,
+                        Message = "No tracking data provided"
+                    });
+                }
+
+                var screenId = int.Parse(User.FindFirst("ScreenId")?.Value);
+                _logger.LogInformation($"Received tracking request for screen {screenId} with {displays.Count} items");
+                
+                // Log the incoming data
+                foreach(var display in displays)
+                {
+                    _logger.LogInformation($"Incoming track: Type={display.ItemType}, ID={display.ItemId}");
+                    display.ScreenId = screenId;
+                    display.DisplayedAt = DateTime.UtcNow;
+                    _context.DisplayTrackers.Add(display);
+                }
+                
+                var saveResult = await _context.SaveChangesAsync();
+                _logger.LogInformation($"Saved {saveResult} records to database");
+                
+                return Ok(new ApiResponse<bool>
+                {
+                    Success = true,
+                    Data = true,
+                    Message = $"Display tracking recorded successfully: {saveResult} records"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error tracking displays: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                return StatusCode(500, new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = $"Error recording display tracking: {ex.Message}"
+                });
+            }
+        }
+
         private string GenerateJwtToken(Screen screen)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));

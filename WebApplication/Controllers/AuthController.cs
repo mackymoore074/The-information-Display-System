@@ -150,12 +150,12 @@ namespace TheWebApplication.Controllers
                     });
                 }
 
-                // Generate token with Screen role
+                // Generate token with Screen role and ScreenId
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.Name, screen.Name),
                     new Claim("ScreenId", screen.Id.ToString()),
-                    new Claim(ClaimTypes.Role, "Screen")  // Add this role claim
+                    new Claim(ClaimTypes.Role, "Screen")  // Make sure this role claim is present
                 };
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));

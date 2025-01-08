@@ -4,6 +4,7 @@
 @using ClassLibrary.Models
 @using ClassLibrary.DtoModels.Common
 @using Microsoft.AspNetCore.Authorization
+@inject IConfiguration Configuration
 @using System.Timers
 @inject IScreenService ScreenService
 @inject NavigationManager NavigationManager
@@ -187,10 +188,17 @@
     private List<NewsItem> newsItems;
     private Timer refreshTimer;
     private bool isFullscreen = false;
+    private int refreshInterval => int.Parse(Configuration["DisplaySettings:RefreshIntervalInSeconds"] ?? "30") * 1000; // Convert to milliseconds
+
 
     protected override async Task OnInitializedAsync()
     {
-        refreshTimer = new Timer(30000);
+        var configuredInterval = Configuration["DisplaySettings:RefreshIntervalInSeconds"];
+        Console.WriteLine($"Configured refresh interval: {configuredInterval} seconds");
+        
+        refreshTimer = new Timer(refreshInterval);
+        Console.WriteLine($"Timer set to: {refreshInterval} milliseconds");
+        
         refreshTimer.Elapsed += async (sender, e) => await RefreshData();
         refreshTimer.Start();
 
@@ -226,6 +234,17 @@
                 menuItems = menuResponse.Data
                     .OrderBy(m => m.Title)
                     .ToList();
+
+                Console.WriteLine($"Tracking {menuItems.Count} menu items");
+                var menuDisplays = menuItems.Select(item => new DisplayTracker
+                {
+                    ItemType = "MenuItem",
+                    ItemId = item.Id,
+                    DisplayedAt = DateTime.UtcNow
+                }).ToList();
+
+                var trackingResponse = await ScreenService.TrackDisplaysAsync(menuDisplays);
+                Console.WriteLine($"Menu tracking response: {trackingResponse.Success} - {trackingResponse.Message}");
             }
 
             var newsResponse = await ScreenService.GetNewsItemsAsync();
@@ -234,6 +253,17 @@
                 newsItems = newsResponse.Data
                     .OrderByDescending(n => n.DateCreated)
                     .ToList();
+
+                Console.WriteLine($"Tracking {newsItems.Count} news items");
+                var newsDisplays = newsItems.Select(item => new DisplayTracker
+                {
+                    ItemType = "NewsItem",
+                    ItemId = item.Id,
+                    DisplayedAt = DateTime.UtcNow
+                }).ToList();
+
+                var trackingResponse = await ScreenService.TrackDisplaysAsync(newsDisplays);
+                Console.WriteLine($"News tracking response: {trackingResponse.Success} - {trackingResponse.Message}");
             }
 
             await InvokeAsync(StateHasChanged);

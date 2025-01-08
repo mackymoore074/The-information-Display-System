@@ -36,9 +36,15 @@ builder.Services.AddScoped<IScreenService>(sp =>
 });
 
 // Add authentication services
+builder.Configuration.AddInMemoryCollection(new Dictionary<string, string>
+{
+    { "DisplaySettings:RefreshIntervalInSeconds", "30" }
+});
 builder.Services.AddAuthenticationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 builder.Services.AddAuthorizationCore();
+
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
 var app = builder.Build();
 

@@ -211,5 +211,52 @@ namespace DsplayScreen.Services
                 };
             }
         }
+
+        public async Task<ApiResponse<bool>> TrackDisplaysAsync(List<DisplayTracker> displays)
+        {
+            try
+            {
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                Console.WriteLine($"Token found: {!string.IsNullOrEmpty(token)}");
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new AuthenticationHeaderValue("Bearer", token);
+
+                Console.WriteLine($"Sending tracking request with {displays.Count} items");
+                var response = await _httpClient.PostAsJsonAsync("api/screenauth/track-displays", displays);
+                var content = await response.Content.ReadAsStringAsync();
+                
+                Console.WriteLine($"Response status: {response.StatusCode}");
+                Console.WriteLine($"Response content: {content}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return new ApiResponse<bool>
+                    {
+                        Success = true,
+                        Data = true,
+                        Message = "Tracking recorded successfully"
+                    };
+                }
+
+                _logger.LogError($"Error response: {content}");
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = $"HTTP Error: {response.StatusCode}",
+                    Data = false
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception in TrackDisplaysAsync: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = false
+                };
+            }
+        }
     }
 } 
