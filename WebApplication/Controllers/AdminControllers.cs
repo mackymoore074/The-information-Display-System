@@ -7,10 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ClassLibrary.DtoModels.Admin;
+using ClassLibrary.Models;
+using ClassLibrary.DtoModels.Common;
 using ClassLibrary;
 using Microsoft.AspNetCore.Authorization;
-using ClassLibrary.DtoModels.Admin;
-using ClassLibrary.Models;
+
 
 namespace TheWebApplication.Controllers
 {
@@ -213,6 +214,85 @@ namespace TheWebApplication.Controllers
             {
                 await LogErrorToDatabaseAsync("Error in DeleteAdmin", ex);
                 return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        // Add this new endpoint
+        [HttpGet("dashboard-analytics")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<DashboardAnalyticsDto>>> GetDashboardAnalytics()
+        {
+            try
+            {
+                var analytics = new DashboardAnalyticsDto
+                {
+                    TotalScreens = await _context.Screens.CountAsync(),
+                    ActiveScreens = await _context.Screens
+                        .Where(s => _context.DisplayTrackers
+                            .Any(dt => dt.ScreenId == s.Id && dt.DisplayedAt >= DateTime.UtcNow.AddMinutes(-15)))
+                            .CountAsync(),
+                    TotalMenuItems = await _context.MenuItems.CountAsync(),
+                    TotalNewsItems = await _context.NewsItems.CountAsync(),
+
+                    TopDisplayedMenuItems = await _context.DisplayTrackers
+                        .Where(dt => dt.ItemType == "MenuItem")
+                        .GroupBy(dt => new { dt.ItemId })
+                        .Select(g => new ItemDisplayStats
+                        {
+                            ItemId = g.Key.ItemId,
+                            Title = _context.MenuItems.FirstOrDefault(m => m.Id == g.Key.ItemId).Title,
+                            DisplayCount = g.Count(),
+                            LastDisplayed = g.Max(dt => dt.DisplayedAt)
+                        })
+                        .OrderByDescending(x => x.DisplayCount)
+                        .Take(10)
+                        .ToListAsync(),
+
+                    TopDisplayedNewsItems = await _context.DisplayTrackers
+                        .Where(dt => dt.ItemType == "NewsItem")
+                        .GroupBy(dt => new { dt.ItemId })
+                        .Select(g => new ItemDisplayStats
+                        {
+                            ItemId = g.Key.ItemId,
+                            Title = _context.NewsItems.FirstOrDefault(n => n.Id == g.Key.ItemId).Title,
+                            DisplayCount = g.Count(),
+                            LastDisplayed = g.Max(dt => dt.DisplayedAt)
+                        })
+                        .OrderByDescending(x => x.DisplayCount)
+                        .Take(10)
+                        .ToListAsync(),
+
+                    ScreenActivities = await _context.Screens
+                        .Select(s => new ScreenActivityStats
+                        {
+                            ScreenId = s.Id,
+                            ScreenName = s.Name,
+                            Location = s.Location.Name,
+                            TotalDisplays = _context.DisplayTrackers.Count(dt => dt.ScreenId == s.Id),
+                            LastActive = _context.DisplayTrackers
+                                .Where(dt => dt.ScreenId == s.Id)
+                                .Max(dt => dt.DisplayedAt),
+                            IsCurrentlyActive = _context.DisplayTrackers
+                                .Any(dt => dt.ScreenId == s.Id && dt.DisplayedAt >= DateTime.UtcNow.AddMinutes(-15))
+                        })
+                        .ToListAsync()
+                };
+
+                return Ok(new ApiResponse<DashboardAnalyticsDto>
+                {
+                    Success = true,
+                    Data = analytics,
+                    Message = "Dashboard analytics retrieved successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error in GetDashboardAnalytics", ex);
+                return StatusCode(500, new ApiResponse<DashboardAnalyticsDto>
+                {
+                    Success = false,
+                    Message = "Error retrieving dashboard analytics"
+                });
             }
         }
 

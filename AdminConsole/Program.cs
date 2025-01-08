@@ -86,6 +86,8 @@ builder.Services.AddScoped<IMenuItemService>(sp =>
     return new MenuItemService(httpClient, logger, localStorage);
 });
 
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
