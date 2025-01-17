@@ -683,7 +683,15 @@ namespace TheWebApplication.Controllers
                     ?? Request.Headers["X-Forwarded-For"].FirstOrDefault() 
                     ?? "Unknown";
 
-                Console.WriteLine($"Detected IP: {ipAddress}"); // Debug log
+                _logger.LogInformation($"Detected IP Address: {ipAddress}");
+
+                // Log all screen accesses for debugging
+                var allScreenAccesses = await _context.ScreenAccesses.ToListAsync();
+                _logger.LogInformation($"Total screen access records: {allScreenAccesses.Count}");
+                foreach (var access in allScreenAccesses)
+                {
+                    _logger.LogInformation($"Screen Access Record - ID: {access.Id}, ScreenId: {access.ScreenId}, IP: {access.IpAddress}, IsActive: {access.IsActive}");
+                }
 
                 var screenAccess = await _context.ScreenAccesses
                     .OrderByDescending(sa => sa.LastAccessTime)
@@ -691,12 +699,15 @@ namespace TheWebApplication.Controllers
 
                 if (screenAccess == null)
                 {
+                    _logger.LogWarning($"No screen access found for IP: {ipAddress}");
                     return Ok(new ApiResponse<ScreenDto>
                     {
                         Success = false,
                         Message = $"No screen found for IP: {ipAddress}"
                     });
                 }
+
+                _logger.LogInformation($"Found screen access - ScreenId: {screenAccess.ScreenId}, Last Access: {screenAccess.LastAccessTime}");
 
                 var screen = await _context.Screens
                     .Include(s => s.Location)
@@ -706,6 +717,7 @@ namespace TheWebApplication.Controllers
 
                 if (screen == null)
                 {
+                    _logger.LogWarning($"Screen not found for ID: {screenAccess.ScreenId}");
                     return Ok(new ApiResponse<ScreenDto>
                     {
                         Success = false,
@@ -713,29 +725,36 @@ namespace TheWebApplication.Controllers
                     });
                 }
 
+                _logger.LogInformation($"Found screen - ID: {screen.Id}, Name: {screen.Name}");
+
                 // Update the screen access
                 screenAccess.LastAccessTime = DateTime.UtcNow;
                 screenAccess.UserAgent = Request.Headers["User-Agent"].ToString();
                 screenAccess.IsActive = true;
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation($"Updated screen access record for Screen ID: {screen.Id}");
+
+                var screenDto = new ScreenDto
+                {
+                    Id = screen.Id,
+                    Name = screen.Name,
+                    LocationName = screen.Location?.Name,
+                    AgencyName = screen.Agency?.Name,
+                    DepartmentName = screen.Department?.Name
+                };
+
                 return Ok(new ApiResponse<ScreenDto>
                 {
                     Success = true,
-                    Data = new ScreenDto
-                    {
-                        Id = screen.Id,
-                        Name = screen.Name,
-                        LocationName = screen.Location?.Name,
-                        AgencyName = screen.Agency?.Name,
-                        DepartmentName = screen.Department?.Name
-                    },
-                    Message = "Screen found successfully"
+                    Data = screenDto,
+                    Message = $"Screen found successfully - ID: {screen.Id}"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetScreenByIp");
+                _logger.LogError($"Error in GetScreenByIp: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new ApiResponse<ScreenDto>
                 {
                     Success = false,
@@ -750,25 +769,69 @@ namespace TheWebApplication.Controllers
         {
             try
             {
-                var menuItems = await _context.MenuItems
+                _logger.LogInformation($"Getting menu items for screen ID: {id}");
+
+                var allMenuItems = await _context.MenuItems
                     .Where(m => m.IsActive)
                     .OrderBy(m => m.Title)
                     .ToListAsync();
+
+                _logger.LogInformation($"Found {allMenuItems.Count} active menu items total");
+
+                var menuItems = new List<MenuItem>();
+                foreach (var item in allMenuItems)
+                {
+                    try
+                    {
+                        _logger.LogInformation($"Checking menu item {item.Id} with ScreenIds: {item.ScreenIds ?? "null"}");
+                        
+                        if (!string.IsNullOrEmpty(item.ScreenIds))
+                        {
+                            // Remove square brackets and split
+                            var cleanIds = item.ScreenIds.Trim('[', ']');
+                            _logger.LogInformation($"Cleaned IDs string: {cleanIds}");
+
+                            if (!string.IsNullOrEmpty(cleanIds))
+                            {
+                                var screenIdArray = cleanIds.Split(',')
+                                    .Select(s => s.Trim())
+                                    .Where(s => !string.IsNullOrEmpty(s))
+                                    .Select(s => int.Parse(s))
+                                    .ToList();
+
+                                _logger.LogInformation($"Parsed screen IDs: {string.Join(", ", screenIdArray)}");
+
+                                if (screenIdArray.Contains(id))
+                                {
+                                    menuItems.Add(item);
+                                    _logger.LogInformation($"Added menu item {item.Id} to results");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error processing menu item {item.Id}: {ex.Message}");
+                    }
+                }
+
+                _logger.LogInformation($"Filtered down to {menuItems.Count} menu items for screen {id}");
 
                 return Ok(new ApiResponse<List<MenuItem>>
                 {
                     Success = true,
                     Data = menuItems,
-                    Message = "Menu items retrieved successfully"
+                    Message = $"Found {menuItems.Count} menu items for screen {id}"
                 });
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error retrieving menu items", ex);
+                _logger.LogError($"Error in GetMenuItemsForScreen: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new ApiResponse<List<MenuItem>>
                 {
                     Success = false,
-                    Message = "Error retrieving menu items"
+                    Message = $"Error retrieving menu items: {ex.Message}"
                 });
             }
         }
@@ -779,25 +842,69 @@ namespace TheWebApplication.Controllers
         {
             try
             {
-                var newsItems = await _context.NewsItems
+                _logger.LogInformation($"Getting news items for screen ID: {id}");
+
+                var allNewsItems = await _context.NewsItems
                     .Where(n => n.IsActive)
                     .OrderByDescending(n => n.DateCreated)
                     .ToListAsync();
+
+                _logger.LogInformation($"Found {allNewsItems.Count} active news items total");
+
+                var newsItems = new List<NewsItem>();
+                foreach (var item in allNewsItems)
+                {
+                    try
+                    {
+                        _logger.LogInformation($"Checking news item {item.Id} with ScreenIds: {item.ScreenIds ?? "null"}");
+                        
+                        if (!string.IsNullOrEmpty(item.ScreenIds))
+                        {
+                            // Remove square brackets and split
+                            var cleanIds = item.ScreenIds.Trim('[', ']');
+                            _logger.LogInformation($"Cleaned IDs string: {cleanIds}");
+
+                            if (!string.IsNullOrEmpty(cleanIds))
+                            {
+                                var screenIdArray = cleanIds.Split(',')
+                                    .Select(s => s.Trim())
+                                    .Where(s => !string.IsNullOrEmpty(s))
+                                    .Select(s => int.Parse(s))
+                                    .ToList();
+
+                                _logger.LogInformation($"Parsed screen IDs: {string.Join(", ", screenIdArray)}");
+
+                                if (screenIdArray.Contains(id))
+                                {
+                                    newsItems.Add(item);
+                                    _logger.LogInformation($"Added news item {item.Id} to results");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error processing news item {item.Id}: {ex.Message}");
+                    }
+                }
+
+                _logger.LogInformation($"Filtered down to {newsItems.Count} news items for screen {id}");
 
                 return Ok(new ApiResponse<List<NewsItem>>
                 {
                     Success = true,
                     Data = newsItems,
-                    Message = "News items retrieved successfully"
+                    Message = $"Found {newsItems.Count} news items for screen {id}"
                 });
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error retrieving news items", ex);
+                _logger.LogError($"Error in GetNewsItemsForScreen: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
                 return StatusCode(500, new ApiResponse<List<NewsItem>>
                 {
                     Success = false,
-                    Message = "Error retrieving news items"
+                    Message = $"Error retrieving news items: {ex.Message}"
                 });
             }
         }
