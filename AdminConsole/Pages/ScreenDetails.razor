@@ -1,0 +1,190 @@
+@page "/screen/{ScreenId:int}"
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels
+@using ClassLibrary.DtoModels.Common
+@using ClassLibrary.DtoModels.Screen
+@inject HttpClient Http
+@inject ILogger<ScreenDetails> Logger
+
+<h3>Screen Details</h3>
+
+@if (loading)
+{
+    <div>Loading...</div>
+}
+else if (screen != null)
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>@screen.Name</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Location:</strong> @screen.LocationName</p>
+                    <p><strong>Agency:</strong> @screen.AgencyName</p>
+                    <p><strong>Department:</strong> @screen.DepartmentName</p>
+                    <p><strong>Screen Type:</strong> @screen.ScreenType</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Status:</strong> @(screen.IsOnline ? "Online" : "Offline")</p>
+                    <p><strong>MAC Address:</strong> @screen.MACAddress</p>
+                    <p><strong>Last Updated:</strong> @screen.LastUpdated.ToString("g")</p>
+                    <p><strong>Last Checked In:</strong> @screen.LastCheckedIn.ToString("g")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (screenAccesses?.Any() == true)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Recent Access History</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Access Time</th>
+                            <th>IP Address</th>
+                            <th>User Agent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var access in screenAccesses)
+                        {
+                            <tr>
+                                <td>@access.LastAccessTime.ToString("g")</td>
+                                <td>@access.IpAddress</td>
+                                <td>@access.UserAgent</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (errorLogs?.Any() == true)
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Error Logs</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Error Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var error in errorLogs)
+                        {
+                            <tr>
+                                <td>@error.DateCreated.ToString("g")</td>
+                                <td>@error.ErrorMessage</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (recentActivities?.Any() == true)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Recent Screen Activities (Last 5)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Display Time</th>
+                            <th>Item Type</th>
+                            <th>Item Title</th>
+                            <th>Duration (seconds)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var activity in recentActivities)
+                        {
+                            <tr>
+                                <td>@activity.DisplayedAt.ToString("g")</td>
+                                <td>@activity.ItemType</td>
+                                <td>@activity.ItemTitle</td>
+                                <td>@activity.DisplayDuration</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-warning">Screen not found.</div>
+}
+
+@code {
+    [Parameter]
+    public int ScreenId { get; set; }
+
+    private ScreenDto screen;
+    private List<ScreenAccess> screenAccesses;
+    private List<ErrorLog> errorLogs;
+    private bool loading = true;
+    private List<ScreenActivityDto> recentActivities;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            loading = true;
+            await LoadScreenData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading screen details");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadScreenData()
+    {
+        // Load screen details
+        var screenResponse = await Http.GetFromJsonAsync<ApiResponse<ScreenDto>>($"api/screen/{ScreenId}");
+        if (screenResponse.Success)
+        {
+            screen = screenResponse.Data;
+        }
+
+        // Load recent access history
+        var accessResponse = await Http.GetFromJsonAsync<ApiResponse<List<ScreenAccess>>>($"api/screenaccess/history/{ScreenId}");
+        if (accessResponse.Success)
+        {
+            screenAccesses = accessResponse.Data;
+        }
+
+        // Load error logs
+        var logsResponse = await Http.GetFromJsonAsync<ApiResponse<List<ErrorLog>>>($"api/screen/{ScreenId}/errors");
+        if (logsResponse.Success)
+        {
+            errorLogs = logsResponse.Data;
+        }
+
+        var activitiesResponse = await Http.GetFromJsonAsync<ApiResponse<List<ScreenActivityDto>>>($"api/screen/{ScreenId}/recent-activities");
+        if (activitiesResponse.Success)
+        {
+            recentActivities = activitiesResponse.Data;
+        }
+    }
+} 

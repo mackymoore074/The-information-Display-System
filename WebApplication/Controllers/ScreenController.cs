@@ -233,6 +233,19 @@ namespace TheWebApplication.Controllers
                 _context.Screens.Add(screen);
                 await _context.SaveChangesAsync();
 
+                // Add initial screen access record
+                var screenAccess = new ScreenAccess
+                {
+                    ScreenId = screen.Id,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.MapToIPv4()?.ToString() ?? "Unknown",
+                    UserAgent = HttpContext.Request.Headers["User-Agent"].ToString() ?? "Unknown",
+                    LastAccessTime = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                _context.ScreenAccesses.Add(screenAccess);
+                await _context.SaveChangesAsync();
+
                 // Load related entities for the response
                 await _context.Entry(screen)
                     .Reference(s => s.Location)
@@ -348,6 +361,22 @@ namespace TheWebApplication.Controllers
                 screen.StatusMessage = updateScreenDto.StatusMessage;
                 screen.MACAddress = updateScreenDto.MACAddress;
 
+                await _context.SaveChangesAsync();
+
+            var screenAccess = await _context.ScreenAccesses
+                    .FirstOrDefaultAsync(s => s.ScreenId == screen.Id);
+
+                // Add initial screen access record
+
+
+                screenAccess.ScreenId = screen.Id;
+                screenAccess.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                screenAccess.UserAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+                screenAccess.LastAccessTime = DateTime.UtcNow;
+                screenAccess.IsActive = true;
+
+
+                _context.ScreenAccesses.Add(screenAccess);
                 await _context.SaveChangesAsync();
 
                 var screenDto = new ScreenDto
@@ -575,6 +604,236 @@ namespace TheWebApplication.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        [HttpGet("{id}/recent-activities")]
+        public async Task<ActionResult<ApiResponse<List<ScreenActivityDto>>>> GetRecentActivities(int id)
+        {
+            try
+            {
+                var activities = await _context.DisplayTrackers
+                    .Where(dt => dt.ScreenId == id)
+                    .OrderByDescending(dt => dt.DisplayedAt)
+                    .Take(5)
+                    .Select(dt => new ScreenActivityDto
+                    {
+                        DisplayedAt = dt.DisplayedAt,
+                        ItemType = dt.ItemType,
+                        ItemTitle = dt.ItemType == "MenuItem" 
+                            ? _context.MenuItems.Where(m => m.Id == dt.ItemId).Select(m => m.Title).FirstOrDefault()
+                            : _context.NewsItems.Where(n => n.Id == dt.ItemId).Select(n => n.Title).FirstOrDefault(),
+                        DisplayDuration = 30 // or however you calculate duration
+                    })
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<ScreenActivityDto>>
+                {
+                    Success = true,
+                    Message = "Recent activities retrieved successfully",
+                    Data = activities
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error retrieving recent activities", ex);
+                return StatusCode(500, new ApiResponse<List<ScreenActivityDto>>
+                {
+                    Success = false,
+                    Message = "Error retrieving recent activities"
+                });
+            }
+        }
+
+        [HttpGet("{id}/errors")]
+        public async Task<ActionResult<ApiResponse<List<ErrorLog>>>> GetScreenErrors(int id)
+        {
+            try
+            {
+                var errors = await _context.ErrorLogs
+                    .Where(e => e.ScreenId == id)
+                    .OrderByDescending(e => e.DateCreated)
+                    .Take(20)
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<ErrorLog>>
+                {
+                    Success = true,
+                    Message = "Screen errors retrieved successfully",
+                    Data = errors
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error retrieving screen errors", ex);
+                return StatusCode(500, new ApiResponse<List<ErrorLog>>
+                {
+                    Success = false,
+                    Message = "Error retrieving screen errors"
+                });
+            }
+        }
+
+        [HttpGet("by-ip")]
+        [AllowAnonymous]
+        public async Task<ActionResult<ApiResponse<ScreenDto>>> GetScreenByIp()
+        {
+            try
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() 
+                    ?? Request.Headers["X-Forwarded-For"].FirstOrDefault() 
+                    ?? "Unknown";
+
+                // First check ScreenAccess table for the IP
+                var screenAccess = await _context.ScreenAccesses
+                    .OrderByDescending(sa => sa.LastAccessTime)
+                    .FirstOrDefaultAsync(sa => sa.IpAddress == ipAddress);
+
+                if (screenAccess == null)
+                {
+                    return NotFound(new ApiResponse<ScreenDto>
+                    {
+                        Success = false,
+                        Message = "No screen found for this IP address"
+                    });
+                }
+
+                // Get the screen details
+                var screen = await _context.Screens
+                    .Include(s => s.Location)
+                    .Include(s => s.Department)
+                    .Include(s => s.Agency)
+                    .FirstOrDefaultAsync(s => s.Id == screenAccess.ScreenId);
+
+                if (screen == null)
+                {
+                    return NotFound(new ApiResponse<ScreenDto>
+                    {
+                        Success = false,
+                        Message = "Screen not found"
+                    });
+                }
+
+                // Update screen access record
+                screenAccess.LastAccessTime = DateTime.UtcNow;
+                screenAccess.UserAgent = Request.Headers["User-Agent"].ToString();
+                screenAccess.IsActive = true;
+                await _context.SaveChangesAsync();
+
+                var screenDto = new ScreenDto
+                {
+                    Id = screen.Id,
+                    Name = screen.Name,
+                    LocationName = screen.Location?.Name,
+                    AgencyName = screen.Agency?.Name,
+                    DepartmentName = screen.Department?.Name
+                };
+
+                return Ok(new ApiResponse<ScreenDto>
+                {
+                    Success = true,
+                    Data = screenDto,
+                    Message = "Screen found successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error in GetScreenByIp", ex);
+                return StatusCode(500, new ApiResponse<ScreenDto>
+                {
+                    Success = false,
+                    Message = "Error retrieving screen information"
+                });
+            }
+        }
+
+        [HttpGet("{id}/menu-items")]
+        [AllowAnonymous]
+        public async Task<ActionResult<ApiResponse<List<MenuItem>>>> GetMenuItemsForScreen(int id)
+        {
+            try
+            {
+                var menuItems = await _context.MenuItems
+                    .Where(m => m.IsActive)
+                    .OrderBy(m => m.Title)
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<MenuItem>>
+                {
+                    Success = true,
+                    Data = menuItems,
+                    Message = "Menu items retrieved successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error retrieving menu items", ex);
+                return StatusCode(500, new ApiResponse<List<MenuItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving menu items"
+                });
+            }
+        }
+
+        [HttpGet("{id}/news-items")]
+        [AllowAnonymous]
+        public async Task<ActionResult<ApiResponse<List<NewsItem>>>> GetNewsItemsForScreen(int id)
+        {
+            try
+            {
+                var newsItems = await _context.NewsItems
+                    .Where(n => n.IsActive)
+                    .OrderByDescending(n => n.DateCreated)
+                    .ToListAsync();
+
+                return Ok(new ApiResponse<List<NewsItem>>
+                {
+                    Success = true,
+                    Data = newsItems,
+                    Message = "News items retrieved successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error retrieving news items", ex);
+                return StatusCode(500, new ApiResponse<List<NewsItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving news items"
+                });
+            }
+        }
+
+        [HttpPost("{id}/track-displays")]
+        [AllowAnonymous]
+        public async Task<ActionResult<ApiResponse<bool>>> TrackDisplays(int id, [FromBody] List<DisplayTracker> displays)
+        {
+            try
+            {
+                foreach (var display in displays)
+                {
+                    display.ScreenId = id;
+                }
+
+                _context.DisplayTrackers.AddRange(displays);
+                await _context.SaveChangesAsync();
+
+                return Ok(new ApiResponse<bool>
+                {
+                    Success = true,
+                    Data = true,
+                    Message = "Displays tracked successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                await LogErrorToDatabaseAsync("Error tracking displays", ex);
+                return StatusCode(500, new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Error tracking displays"
+                });
+            }
         }
     }
 }

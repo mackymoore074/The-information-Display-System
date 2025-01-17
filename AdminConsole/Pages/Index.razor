@@ -68,7 +68,11 @@
                             @foreach (var screen in analytics.ScreenActivities)
                             {
                                 <tr>
-                                    <td>@screen.ScreenName</td>
+                                    <td>
+                                        <a href="/screen/@screen.ScreenId" class="text-primary text-decoration-none">
+                                            @screen.ScreenName
+                                        </a>
+                                    </td>
                                     <td>@screen.Location</td>
                                     <td>@screen.TotalDisplays</td>
                                     <td>@screen.LastActive.ToString("MMM dd, HH:mm")</td>

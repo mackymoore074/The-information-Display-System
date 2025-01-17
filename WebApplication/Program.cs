@@ -103,6 +103,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<CustomJwtBearerEvents>();
 builder.Services.AddCors(options =>
 {

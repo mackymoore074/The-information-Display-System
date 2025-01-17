@@ -9,6 +9,7 @@ namespace ClassLibrary.Models
         public ClassDBContext() { }
 
         public DbSet<Screen> Screens { get; set; }
+        public DbSet<ScreenAccess> ScreenAccesses { get; set; }
         public DbSet<Department> Departments { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<Agency> Agencies { get; set; }

@@ -1,0 +1,295 @@
+@page "/public-display"
+@layout LoginLayout
+@using DsplayScreen.Auth
+@using DsplayScreen.IService
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels.Common
+@using System.Timers
+@inject IScreenService ScreenService
+@inject IJSRuntime JSRuntime
+@inject IPublicDisplayService PublicDisplayService
+
+<div class="@(isFullscreen ? "fullscreen-mode" : "")">
+        <button class="fullscreen-button" @onclick="ToggleFullscreen">
+            <span class="oi @(isFullscreen ? "oi-fullscreen-exit" : "oi-fullscreen-enter")" aria-hidden="true"></span>
+        </button>
+
+    <div class="dashboard-container">
+        <!-- Menu Items Section -->
+        <div class="menu-section">
+            <h3>Menu Items</h3>
+            @if (menuItems == null)
+            {
+                <div class="loading">Loading menu items...</div>
+            }
+            else if (!menuItems.Any())
+            {
+                <div class="no-data">No menu items available</div>
+            }
+            else
+            {
+                <div class="menu-items-list">
+                    @foreach (var item in menuItems)
+                    {
+                        <div class="menu-item">
+                            <h4>@item.Title</h4>
+                            <div class="menu-details">
+                                <p>@item.Description</p>
+                                <span class="price">@item.Price.ToString()</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- News Items Section -->
+        <div class="news-section">
+            <h3>News & Updates</h3>
+            @if (newsItems == null)
+            {
+                <div class="loading">Loading news items...</div>
+            }
+            else if (!newsItems.Any())
+            {
+                <div class="no-data">No news items available</div>
+            }
+            else
+            {
+                <div class="news-items-list">
+                    @foreach (var item in newsItems)
+                    {
+                        <div class="news-item">
+                            <div class="news-header">
+                                <h4>@item.Title</h4>
+                            </div>
+                            <div class="news-content">
+                                <p>@item.NewsItemBody</p>
+                            </div>
+                            <div class="news-footer">
+                                <span class="date">Posted: @item.DateCreated.ToString("MMM dd, yyyy HH:mm")</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .fullscreen-mode {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+        background: white;
+        padding: 20px;
+    }
+
+    .fullscreen-button {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s;
+    }
+
+    .fullscreen-button:hover {
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .fullscreen-button .oi {
+        font-size: 24px;
+    }
+
+    .dashboard-container {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .menu-section {
+        width: 30%;
+        padding: 20px;
+        background-color: #f5f5f5;
+        overflow-y: auto;
+    }
+
+    .news-section {
+        width: 70%;
+        padding: 20px;
+        background-color: #ffffff;
+        overflow-y: auto;
+    }
+
+    .menu-item, .news-item {
+        background: white;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .news-item {
+        background: #f8f9fa;
+    }
+
+    .price {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
+
+    .loading, .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+    }
+    .login-layout {
+        display: block !important;
+    }
+
+    h3 {
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    h4 {
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+</style>
+
+@code {
+    private List<MenuItem> menuItems;
+    private List<NewsItem> newsItems;
+    private System.Timers.Timer refreshTimer;
+    private bool isFullscreen = false;
+    private const int refreshInterval = 30000; // 30 seconds
+    private int? screenId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var screenResponse = await PublicDisplayService.GetScreenByIpAsync();
+            if (screenResponse.Success)
+            {
+                screenId = screenResponse.Data.Id;
+                refreshTimer = new System.Timers.Timer(refreshInterval);
+                refreshTimer.Elapsed += async (sender, e) => 
+                {
+                    await InvokeAsync(async () => 
+                    {
+                        await RefreshData();
+                        StateHasChanged();
+                    });
+                };
+                refreshTimer.AutoReset = true;
+                refreshTimer.Enabled = true;
+
+                await RefreshData();
+            }
+            else
+            {
+                // Handle case where screen is not found
+                Console.WriteLine("Screen not found for this IP address");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing display: {ex.Message}");
+            throw;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        if (!screenId.HasValue) return;
+
+        try
+        {
+            var menuResponse = await PublicDisplayService.GetMenuItemsForScreenAsync(screenId.Value);
+            if (menuResponse.Success)
+            {
+                menuItems = menuResponse.Data;
+
+                var menuDisplays = menuItems.Select(item => new DisplayTracker
+                {
+                    ItemType = "MenuItem",
+                    ItemId = item.Id,
+                    DisplayedAt = DateTime.UtcNow
+                }).ToList();
+
+                await PublicDisplayService.TrackDisplaysAsync(screenId.Value, menuDisplays);
+            }
+
+            var newsResponse = await PublicDisplayService.GetNewsItemsForScreenAsync(screenId.Value);
+            if (newsResponse.Success)
+            {
+                newsItems = newsResponse.Data;
+
+                var newsDisplays = newsItems.Select(item => new DisplayTracker
+                {
+                    ItemType = "NewsItem",
+                    ItemId = item.Id,
+                    DisplayedAt = DateTime.UtcNow
+                }).ToList();
+
+                await PublicDisplayService.TrackDisplaysAsync(screenId.Value, newsDisplays);
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing data: {ex.Message}");
+            throw;
+        }
+    }
+
+    private async Task ToggleFullscreen()
+    {
+        try
+        {
+            if (!isFullscreen)
+            {
+                await JSRuntime.InvokeVoidAsync("fullscreenFunctions.enterFullscreen");
+                isFullscreen = true;
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("fullscreenFunctions.exitFullscreen");
+                isFullscreen = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error toggling fullscreen: {ex.Message}");
+            // This will generate an error log
+            throw;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (refreshTimer != null)
+        {
+            refreshTimer.Stop();
+            refreshTimer.Dispose();
+        }
+    }
+} 

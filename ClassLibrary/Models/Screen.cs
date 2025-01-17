@@ -43,6 +43,8 @@ namespace ClassLibrary.Models
         public string StatusMessage { get; set; } // A message regarding the screen status
         public string MACAddress { get; set; } // MAC address of the screen
 
+        public ICollection<ScreenAccess> ScreenAccesses { get; set; }
+
     }
 
 

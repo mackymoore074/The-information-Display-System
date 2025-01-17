@@ -46,6 +46,12 @@ builder.Services.AddAuthorizationCore();
 
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
+builder.Services.AddScoped<IPublicDisplayService, PublicDisplayService>();
+builder.Services.AddHttpClient();
+
+// If you're using authentication in other parts of the app
+builder.Services.AddAuthorizationCore();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline

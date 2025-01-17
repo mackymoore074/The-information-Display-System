@@ -263,20 +263,28 @@ namespace TheWebApplication.Controllers
                         .ToListAsync(),
 
                     ScreenActivities = await _context.Screens
+                        .Include(s => s.Location)
                         .Select(s => new ScreenActivityStats
                         {
                             ScreenId = s.Id,
-                            ScreenName = s.Name,
-                            Location = s.Location.Name,
+                            ScreenName = s.Name ?? "Unknown",
+                            Location = s.Location != null ? s.Location.Name ?? "Unknown" : "Unknown",
                             TotalDisplays = _context.DisplayTrackers.Count(dt => dt.ScreenId == s.Id),
                             LastActive = _context.DisplayTrackers
                                 .Where(dt => dt.ScreenId == s.Id)
-                                .Max(dt => dt.DisplayedAt),
+                                .OrderByDescending(dt => dt.DisplayedAt)
+                                .Select(dt => dt.DisplayedAt)
+                                .FirstOrDefault(),
                             IsCurrentlyActive = _context.DisplayTrackers
                                 .Any(dt => dt.ScreenId == s.Id && dt.DisplayedAt >= DateTime.UtcNow.AddMinutes(-15))
                         })
                         .ToListAsync()
                 };
+
+                // Initialize empty lists if null
+                analytics.ScreenActivities ??= new List<ScreenActivityStats>();
+                analytics.TopDisplayedMenuItems ??= new List<ItemDisplayStats>();
+                analytics.TopDisplayedNewsItems ??= new List<ItemDisplayStats>();
 
                 return Ok(new ApiResponse<DashboardAnalyticsDto>
                 {
