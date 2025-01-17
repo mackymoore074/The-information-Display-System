@@ -16,7 +16,9 @@ namespace TheWebApplication.Middleware
         public async Task InvokeAsync(HttpContext context)
         {
             if (!context.User.Identity.IsAuthenticated && 
-                !context.Request.Path.StartsWithSegments("/api/auth"))
+                !context.Request.Path.StartsWithSegments("/api/auth") &&
+                !context.Request.Path.StartsWithSegments("/api/screen/by-ip") &&
+                !context.Request.Path.Value.Contains("/api/screen/", StringComparison.OrdinalIgnoreCase))
             {
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 await HandleUnauthorizedResponse(context);

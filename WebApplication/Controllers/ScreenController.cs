@@ -683,21 +683,21 @@ namespace TheWebApplication.Controllers
                     ?? Request.Headers["X-Forwarded-For"].FirstOrDefault() 
                     ?? "Unknown";
 
-                // First check ScreenAccess table for the IP
+                Console.WriteLine($"Detected IP: {ipAddress}"); // Debug log
+
                 var screenAccess = await _context.ScreenAccesses
                     .OrderByDescending(sa => sa.LastAccessTime)
                     .FirstOrDefaultAsync(sa => sa.IpAddress == ipAddress);
 
                 if (screenAccess == null)
                 {
-                    return NotFound(new ApiResponse<ScreenDto>
+                    return Ok(new ApiResponse<ScreenDto>
                     {
                         Success = false,
-                        Message = "No screen found for this IP address"
+                        Message = $"No screen found for IP: {ipAddress}"
                     });
                 }
 
-                // Get the screen details
                 var screen = await _context.Screens
                     .Include(s => s.Location)
                     .Include(s => s.Department)
@@ -706,38 +706,36 @@ namespace TheWebApplication.Controllers
 
                 if (screen == null)
                 {
-                    return NotFound(new ApiResponse<ScreenDto>
+                    return Ok(new ApiResponse<ScreenDto>
                     {
                         Success = false,
                         Message = "Screen not found"
                     });
                 }
 
-                // Update screen access record
+                // Update the screen access
                 screenAccess.LastAccessTime = DateTime.UtcNow;
                 screenAccess.UserAgent = Request.Headers["User-Agent"].ToString();
                 screenAccess.IsActive = true;
                 await _context.SaveChangesAsync();
 
-                var screenDto = new ScreenDto
-                {
-                    Id = screen.Id,
-                    Name = screen.Name,
-                    LocationName = screen.Location?.Name,
-                    AgencyName = screen.Agency?.Name,
-                    DepartmentName = screen.Department?.Name
-                };
-
                 return Ok(new ApiResponse<ScreenDto>
                 {
                     Success = true,
-                    Data = screenDto,
+                    Data = new ScreenDto
+                    {
+                        Id = screen.Id,
+                        Name = screen.Name,
+                        LocationName = screen.Location?.Name,
+                        AgencyName = screen.Agency?.Name,
+                        DepartmentName = screen.Department?.Name
+                    },
                     Message = "Screen found successfully"
                 });
             }
             catch (Exception ex)
             {
-                await LogErrorToDatabaseAsync("Error in GetScreenByIp", ex);
+                _logger.LogError(ex, "Error in GetScreenByIp");
                 return StatusCode(500, new ApiResponse<ScreenDto>
                 {
                     Success = false,
