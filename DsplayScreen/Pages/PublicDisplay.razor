@@ -8,6 +8,9 @@
 @inject IScreenService ScreenService
 @inject IJSRuntime JSRuntime
 @inject IPublicDisplayService PublicDisplayService
+@inject HttpClient Http
+@inject IConfiguration Configuration
+@implements IDisposable
 
 <div class="@(isFullscreen ? "fullscreen-mode" : "")">
         <button class="fullscreen-button" @onclick="ToggleFullscreen">
@@ -18,25 +21,15 @@
         <!-- Menu Items Section -->
         <div class="menu-section">
             <h3>Menu Items</h3>
-            @if (menuItems == null)
-            {
-                <div class="loading">Loading menu items...</div>
-            }
-            else if (!menuItems.Any())
-            {
-                <div class="no-data">No menu items available</div>
-            }
-            else
+            @if (menuItems != null && menuItems.Any())
             {
                 <div class="menu-items-list">
                     @foreach (var item in menuItems)
                     {
-                        <div class="menu-item">
+                        <div class="menu-item @(!item.IsActive ? "expired" : "")">
                             <h4>@item.Title</h4>
-                            <div class="menu-details">
-                                <p>@item.Description</p>
-                                <span class="price">@item.Price.ToString()</span>
-                            </div>
+                            <p>@item.Description</p>
+                            <span class="price">@item.Price.ToString()</span>
                         </div>
                     }
                 </div>
@@ -46,29 +39,15 @@
         <!-- News Items Section -->
         <div class="news-section">
             <h3>News & Updates</h3>
-            @if (newsItems == null)
-            {
-                <div class="loading">Loading news items...</div>
-            }
-            else if (!newsItems.Any())
-            {
-                <div class="no-data">No news items available</div>
-            }
-            else
+            @if (displayedNewsItems != null)
             {
                 <div class="news-items-list">
-                    @foreach (var item in newsItems)
+                    @foreach (var item in displayedNewsItems)
                     {
-                        <div class="news-item">
-                            <div class="news-header">
-                                <h4>@item.Title</h4>
-                            </div>
-                            <div class="news-content">
-                                <p>@item.NewsItemBody</p>
-                            </div>
-                            <div class="news-footer">
-                                <span class="date">Posted: @item.DateCreated.ToString("MMM dd, yyyy HH:mm")</span>
-                            </div>
+                        <div class="news-item @(IsNewsExpired(item) ? "expired" : "")">
+                            <h4>@item.Title</h4>
+                            <p>@item.NewsItemBody</p>
+                            <span class="date">@item.DateCreated.ToString("g")</span>
                         </div>
                     }
                 </div>
@@ -141,10 +120,27 @@
         margin-bottom: 15px;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .expired {
+        opacity: 0.6;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+
+    .expired h4 {
+        color: #6c757d;
+    }
+
+    .expired .price,
+    .expired .date,
+    .expired .expiry-date {
+        color: #dc3545;
     }
 
     .news-item {
-        background: #f8f9fa;
+        transition: opacity 0.3s ease-in-out;
     }
 
     .price {
@@ -171,48 +167,75 @@
         color: #007bff;
         margin-bottom: 10px;
     }
+
+    .expiry-date {
+        color: #dc3545;
+        font-size: 0.8em;
+        display: block;
+        margin-top: 5px;
+        font-style: italic;
+    }
+
+    .expired::after {
+        content: "EXPIRED";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7em;
+        font-weight: bold;
+    }
 </style>
 
 @code {
     private List<MenuItem> menuItems;
-    private List<NewsItem> newsItems;
-    private System.Timers.Timer refreshTimer;
-    private bool isFullscreen = false;
-    private const int refreshInterval = 30000; // 30 seconds
+    private List<NewsItem> allNewsItems;
+    private List<NewsItem> displayedNewsItems;
     private int? screenId;
+    private System.Timers.Timer refreshTimer;
+    private System.Timers.Timer displayTimer;
+    private int currentNewsIndex = 0;
+    private bool isFullscreen = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var screenResponse = await PublicDisplayService.GetScreenByIpAsync();
-            if (screenResponse.Success)
+            var response = await Http.GetFromJsonAsync<ApiResponse<ScreenDto>>("api/screen/by-ip");
+            if (response?.Success == true && response.Data != null)
             {
-                screenId = screenResponse.Data.Id;
+                screenId = response.Data.Id;
+                
+                // Set up refresh timer for backend data
+                var refreshInterval = Configuration.GetValue<int>("DisplaySettings:RefreshIntervalInSeconds") * 1000;
                 refreshTimer = new System.Timers.Timer(refreshInterval);
-                refreshTimer.Elapsed += async (sender, e) => 
-                {
-                    await InvokeAsync(async () => 
-                    {
-                        await RefreshData();
-                        StateHasChanged();
-                    });
-                };
+                refreshTimer.Elapsed += async (sender, e) => await RefreshData();
                 refreshTimer.AutoReset = true;
                 refreshTimer.Enabled = true;
 
+                // Set up display timer for news rotation
+                var displayInterval = Configuration.GetValue<int>("DisplaySettings:NewsRotationIntervalInSeconds") * 1000;
+                displayTimer = new System.Timers.Timer(displayInterval);
+                displayTimer.Elapsed += async (sender, e) => 
+                {
+                    await InvokeAsync(() =>
+                    {
+                        RotateNewsItems();
+                        StateHasChanged();
+                    });
+                };
+                displayTimer.AutoReset = true;
+                displayTimer.Enabled = true;
+
                 await RefreshData();
-            }
-            else
-            {
-                // Handle case where screen is not found
-                Console.WriteLine("Screen not found for this IP address");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error initializing display: {ex.Message}");
-            throw;
+            Console.WriteLine($"Error: {ex.Message}");
         }
     }
 
@@ -222,34 +245,25 @@
 
         try
         {
-            var menuResponse = await PublicDisplayService.GetMenuItemsForScreenAsync(screenId.Value);
-            if (menuResponse.Success)
+            Console.WriteLine("Refreshing data from backend...");
+
+            var menuResponse = await Http.GetFromJsonAsync<ApiResponse<List<MenuItem>>>($"api/screen/{screenId}/menu-items");
+            if (menuResponse?.Success == true)
             {
                 menuItems = menuResponse.Data;
-
-                var menuDisplays = menuItems.Select(item => new DisplayTracker
-                {
-                    ItemType = "MenuItem",
-                    ItemId = item.Id,
-                    DisplayedAt = DateTime.UtcNow
-                }).ToList();
-
-                await PublicDisplayService.TrackDisplaysAsync(screenId.Value, menuDisplays);
             }
 
-            var newsResponse = await PublicDisplayService.GetNewsItemsForScreenAsync(screenId.Value);
-            if (newsResponse.Success)
+            var newsResponse = await Http.GetFromJsonAsync<ApiResponse<List<NewsItem>>>($"api/screen/{screenId}/news-items");
+            if (newsResponse?.Success == true)
             {
-                newsItems = newsResponse.Data;
-
-                var newsDisplays = newsItems.Select(item => new DisplayTracker
+                allNewsItems = newsResponse.Data;
+                Console.WriteLine($"Received {allNewsItems.Count} news items from backend");
+                
+                // Initialize displayed items if not already showing any
+                if (displayedNewsItems == null || !displayedNewsItems.Any())
                 {
-                    ItemType = "NewsItem",
-                    ItemId = item.Id,
-                    DisplayedAt = DateTime.UtcNow
-                }).ToList();
-
-                await PublicDisplayService.TrackDisplaysAsync(screenId.Value, newsDisplays);
+                    RotateNewsItems();
+                }
             }
 
             await InvokeAsync(StateHasChanged);
@@ -257,7 +271,35 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error refreshing data: {ex.Message}");
-            throw;
+        }
+    }
+
+    private void RotateNewsItems()
+    {
+        if (allNewsItems == null || !allNewsItems.Any())
+        {
+            displayedNewsItems = new List<NewsItem>();
+            return;
+        }
+
+        var itemsPerPage = Configuration.GetValue<int>("DisplaySettings:NewsItemsPerPage");
+        
+        // Ensure we only take exactly the configured number of items
+        displayedNewsItems = allNewsItems
+            .Skip(currentNewsIndex)
+            .Take(itemsPerPage)
+            .ToList();
+
+        Console.WriteLine($"Displaying news items {currentNewsIndex + 1}-{currentNewsIndex + displayedNewsItems.Count} of {allNewsItems.Count}");
+
+        // Update index for next rotation
+        currentNewsIndex += itemsPerPage;
+
+        // Reset index if we've shown all items or are about to exceed the list
+        if (currentNewsIndex >= allNewsItems.Count)
+        {
+            currentNewsIndex = 0;
+            Console.WriteLine("Resetting news rotation to beginning");
         }
     }
 
@@ -284,12 +326,15 @@
         }
     }
 
+    private bool IsNewsExpired(NewsItem item)
+    {
+        // Consider news items older than 7 days as expired
+        return (DateTime.Now - item.DateCreated).TotalDays > 7;
+    }
+
     public void Dispose()
     {
-        if (refreshTimer != null)
-        {
-            refreshTimer.Stop();
-            refreshTimer.Dispose();
-        }
+        refreshTimer?.Dispose();
+        displayTimer?.Dispose();
     }
 } 
