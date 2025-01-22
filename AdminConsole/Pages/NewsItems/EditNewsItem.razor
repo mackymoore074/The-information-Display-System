@@ -1,0 +1,312 @@
+@page "/news-items/edit/{Id:int}"
+@using AdminConsole.IService
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels.NewsItem
+@using ClassLibrary.DtoModels.Department
+@using ClassLibrary.DtoModels.Location
+@using ClassLibrary.DtoModels.Screen
+@using ClassLibrary.DtoModels.Common
+@inject INewsItemService NewsItemService
+@inject IDepartmentService DepartmentService
+@inject ILocationService LocationService
+@inject IScreenService ScreenService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@attribute [Authorize]
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Edit News Item</h5>
+
+            @if (model == null)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="@model" OnValidSubmit="SaveNewsItem">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <InputText class="form-control" @bind-Value="model.Title" />
+                        <ValidationMessage For="@(() => model.Title)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Content</label>
+                        <InputTextArea class="form-control" @bind-Value="model.NewsItemBody" rows="5" />
+                        <ValidationMessage For="@(() => model.NewsItemBody)" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Time Out Date</label>
+                            <InputDate class="form-control" @bind-Value="model.TimeOutDate" />
+                            <ValidationMessage For="@(() => model.TimeOutDate)" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Importance Level</label>
+                            <InputSelect class="form-select" @bind-Value="model.Importance">
+                                @foreach (ImportanceLevel importance in Enum.GetValues(typeof(ImportanceLevel)))
+                                {
+                                    <option value="@importance">@importance</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">More Information URL</label>
+                        <InputText class="form-control" @bind-Value="model.MoreInformationUrl" />
+                        <ValidationMessage For="@(() => model.MoreInformationUrl)" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    Departments
+                                </div>
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    @if (departments == null)
+                                    {
+                                        <div class="text-center">
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var dept in departments)
+                                        {
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input"
+                                                       checked="@deptSelections[dept.Id]"
+                                                       @onchange="@(e => deptSelections[dept.Id] = (bool)e.Value)" />
+                                                <label class="form-check-label">
+                                                    @dept.Name
+                                                </label>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    Locations
+                                </div>
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    @if (locations == null)
+                                    {
+                                        <div class="text-center">
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var loc in locations)
+                                        {
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input"
+                                                       checked="@locSelections[loc.Id]"
+                                                       @onchange="@(e => locSelections[loc.Id] = (bool)e.Value)" />
+                                                <label class="form-check-label">
+                                                    @loc.Name
+                                                </label>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header">
+                                    Screens
+                                </div>
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    @if (screens == null)
+                                    {
+                                        <div class="text-center">
+                                            <div class="spinner-border spinner-border-sm" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var screen in screens)
+                                        {
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input"
+                                                       checked="@screenSelections[screen.Id]"
+                                                       @onchange="@(e => screenSelections[screen.Id] = (bool)e.Value)" />
+                                                <label class="form-check-label">
+                                                    @screen.Name
+                                                </label>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="button" class="btn btn-secondary me-2" @onclick="Cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private List<DepartmentDto> departments;
+    private List<LocationDto> locations;
+    private List<ScreenDto> screens;
+    private Dictionary<int, bool> deptSelections = new();
+    private Dictionary<int, bool> locSelections = new();
+    private Dictionary<int, bool> screenSelections = new();
+    private CreateNewsItemDto model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNewsItem();
+        await LoadRelatedData();
+    }
+
+    private async Task LoadNewsItem()
+    {
+        try
+        {
+            var response = await NewsItemService.GetNewsItemByIdAsync(Id);
+            if (response.Success)
+            {
+                var item = response.Data;
+                model = new CreateNewsItemDto
+                {
+                    Title = item.Title,
+                    NewsItemBody = item.NewsItemBody,
+                    TimeOutDate = item.TimeOutDate,
+                    Importance = item.Importance,
+                    MoreInformationUrl = item.MoreInformationUrl
+                };
+
+                // Initialize selections
+                if (item.Departments != null)
+                    foreach (var deptId in item.Departments)
+                        deptSelections[deptId] = true;
+
+                if (item.Locations != null)
+                    foreach (var locId in item.Locations)
+                        locSelections[locId] = true;
+
+                if (item.Screens != null)
+                    foreach (var screenId in item.Screens)
+                        screenSelections[screenId] = true;
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", response.Message);
+                NavigationManager.NavigateTo("/news-items");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error loading news item: {ex.Message}");
+            NavigationManager.NavigateTo("/news-items");
+        }
+    }
+
+    private async Task LoadRelatedData()
+    {
+        try
+        {
+            var deptResponse = await DepartmentService.GetDepartmentsAsync();
+            if (deptResponse.Success)
+            {
+                departments = deptResponse.Data.ToList();
+                foreach (var dept in departments)
+                {
+                    if (!deptSelections.ContainsKey(dept.Id))
+                        deptSelections[dept.Id] = false;
+                }
+            }
+
+            var locResponse = await LocationService.GetLocationsAsync();
+            if (locResponse.Success)
+            {
+                locations = locResponse.Data.ToList();
+                foreach (var loc in locations)
+                {
+                    if (!locSelections.ContainsKey(loc.Id))
+                        locSelections[loc.Id] = false;
+                }
+            }
+
+            var screenResponse = await ScreenService.GetAllAsync();
+            if (screenResponse.Success)
+            {
+                screens = screenResponse.Data.ToList();
+                foreach (var screen in screens)
+                {
+                    if (!screenSelections.ContainsKey(screen.Id))
+                        screenSelections[screen.Id] = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error loading related data: {ex.Message}");
+        }
+    }
+
+    private async Task SaveNewsItem()
+    {
+        try
+        {
+            model.Departments = deptSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            model.Locations = locSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            model.Screens = screenSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+
+            var response = await NewsItemService.UpdateNewsItemAsync(Id, model);
+            if (response.Success)
+            {
+                NavigationManager.NavigateTo("/news-items");
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", response.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error updating news item: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/news-items");
+    }
+}

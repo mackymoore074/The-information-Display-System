@@ -1,0 +1,132 @@
+@page "/news-items"
+@namespace AdminConsole.Pages.NewsItems
+@using AdminConsole.IService
+@using AdminConsole.Services
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels.NewsItem
+@inject INewsItemService NewsItemService
+@inject IJSRuntime JsRuntime
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title">News Items</h5>
+                <button class="btn btn-primary" @onclick="NavigateToAdd">
+                    <i class="bi bi-plus"></i> Add News Item
+                </button>
+            </div>
+
+            @if (_newsItems == null)
+            {
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Importance</th>
+                                <th>Time Out Date</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _newsItems)
+                            {
+                                <tr>
+                                    <td>@item.Title</td>
+                                    <td>@item.Importance</td>
+                                    <td>@item.TimeOutDate.ToLocalTime().ToString("g")</td>
+                                    <td>@item.DateCreated.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                @onclick="() => NavigateToEdit(item.Id)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                @onclick="() => OpenDeleteDialog(item)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<NewsItem> _newsItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var response = await NewsItemService.GetAllNewsItemsAsync();
+            if (response.Success)
+            {
+                _newsItems = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
+        }
+    }
+
+    private void NavigateToAdd()
+    {
+        NavigationManager.NavigateTo("/news-items/add");
+    }
+
+    private void NavigateToEdit(int id)
+    {
+        NavigationManager.NavigateTo($"/news-items/edit/{id}");
+    }
+
+    private async Task OpenDeleteDialog(NewsItem item)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {item.Title}?"))
+        {
+            await DeleteNewsItem(item.Id);
+        }
+    }
+
+    private async Task DeleteNewsItem(int id)
+    {
+        try
+        {
+            var response = await NewsItemService.DeleteNewsItemAsync(id);
+            if (response.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", response.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error deleting news item: {ex.Message}");
+        }
+    }
+}
