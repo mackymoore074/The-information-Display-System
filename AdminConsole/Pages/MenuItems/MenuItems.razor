@@ -1,0 +1,220 @@
+@page "/menu-items"
+@using AdminConsole.IService
+@using AdminConsole.Services
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels.MenuItem
+@using ClassLibrary.DtoModels.Department
+@using ClassLibrary.DtoModels.Location
+@using ClassLibrary.DtoModels.Screen
+@using ClassLibrary.DtoModels.Common
+@inject IMenuItemService MenuItemService
+@inject IJSRuntime JsRuntime
+@inject IDepartmentService DepartmentService
+@inject ILocationService LocationService
+@inject IScreenService ScreenService
+@inject NavigationManager NavigationManager
+@attribute [Authorize]
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title">Menu Items</h5>
+                <button class="btn btn-primary" @onclick="NavigateToAdd">
+                    <i class="bi bi-plus"></i> Add Menu Item
+                </button>
+            </div>
+
+            @if (_menuItems == null)
+            {
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Type</th>
+                                <th>Time Out Date</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in _menuItems)
+                            {
+                                <tr>
+                                    <td>@item.Title</td>
+                                    <td>@item.Description</td>
+                                    <td>@item.Price</td>
+                                    <td>@item.Type</td>
+                                    <td>@item.TimeOutDate.ToLocalTime().ToString("g")</td>
+                                    <td>@item.DateCreated.ToLocalTime().ToString("g")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                @onclick="() => NavigateToEdit(item.Id)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                @onclick="() => OpenDeleteDialog(item)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<MenuItem> _menuItems;
+    private List<DepartmentDto> departments;
+    private List<LocationDto> locations;
+    private List<ScreenDto> screens;
+    private Dictionary<int, bool> deptSelections = new();
+    private Dictionary<int, bool> locSelections = new();
+    private Dictionary<int, bool> screenSelections = new();
+    private bool showDialog;
+    private string dialogTitle;
+    private CreateMenuItemDto model = new();
+    private int? editingId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        await LoadRelatedData();
+    }
+
+    private async Task LoadRelatedData()
+    {
+        try
+        {
+            var deptResponse = await DepartmentService.GetDepartmentsAsync();
+            if (deptResponse.Success)
+            {
+                departments = deptResponse.Data.ToList();
+                foreach (var dept in departments)
+                {
+                    if (!deptSelections.ContainsKey(dept.Id))
+                        deptSelections[dept.Id] = false;
+                }
+            }
+
+            var locResponse = await LocationService.GetLocationsAsync();
+            if (locResponse.Success)
+            {
+                locations = locResponse.Data.ToList();
+                foreach (var loc in locations)
+                {
+                    if (!locSelections.ContainsKey(loc.Id))
+                        locSelections[loc.Id] = false;
+                }
+            }
+
+            var screenResponse = await ScreenService.GetAllAsync();
+            if (screenResponse.Success)
+            {
+                screens = screenResponse.Data.ToList();
+                foreach (var screen in screens)
+                {
+                    if (!screenSelections.ContainsKey(screen.Id))
+                        screenSelections[screen.Id] = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error loading related data: {ex.Message}");
+        }
+    }
+
+    private void UpdateSelections(MenuItem item)
+    {
+        // Reset all selections
+        foreach (var key in deptSelections.Keys.ToList())
+            deptSelections[key] = false;
+        foreach (var key in locSelections.Keys.ToList())
+            locSelections[key] = false;
+        foreach (var key in screenSelections.Keys.ToList())
+            screenSelections[key] = false;
+
+        // Set selected items
+        foreach (var deptId in item.Departments)
+            if (deptSelections.ContainsKey(deptId))
+                deptSelections[deptId] = true;
+
+        foreach (var locId in item.Locations)
+            if (locSelections.ContainsKey(locId))
+                locSelections[locId] = true;
+
+        foreach (var screenId in item.Screens)
+            if (screenSelections.ContainsKey(screenId))
+                screenSelections[screenId] = true;
+    }
+
+    private void NavigateToAdd()
+    {
+        NavigationManager.NavigateTo("/menu-items/add");
+    }
+
+    private void NavigateToEdit(int id)
+    {
+        NavigationManager.NavigateTo($"/menu-items/edit/{id}");
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var response = await MenuItemService.GetAllMenuItemsAsync();
+            if (response.Success)
+            {
+                _menuItems = response.Data;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error loading data: {ex.Message}");
+        }
+    }
+
+    private async Task OpenDeleteDialog(MenuItem item)
+    {
+        if (await JsRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete {item.Title}?"))
+        {
+            await DeleteMenuItem(item.Id);
+        }
+    }
+
+    private async Task DeleteMenuItem(int id)
+    {
+        try
+        {
+            var response = await MenuItemService.DeleteMenuItemAsync(id);
+            if (response.Success)
+            {
+                await LoadData();
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", response.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error deleting menu item: {ex.Message}");
+        }
+    }
+} 

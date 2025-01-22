@@ -9,8 +9,9 @@ namespace AdminConsole.IService
     public interface IMenuItemService
     {
         Task<ApiResponse<List<MenuItem>>> GetAllMenuItemsAsync();
-        Task<ApiResponse<MenuItem>> CreateMenuItemAsync(CreateMenuItemDto menuItem);
-        Task<ApiResponse<MenuItem>> UpdateMenuItemAsync(int id, CreateMenuItemDto menuItem);
-        Task<ApiResponse<object>> DeleteMenuItemAsync(int id);
+        Task<ApiResponse<MenuItem>> GetMenuItemAsync(int id);
+        Task<ApiResponse<MenuItem>> CreateMenuItemAsync(CreateMenuItemDto model);
+        Task<ApiResponse<MenuItem>> UpdateMenuItemAsync(int id, CreateMenuItemDto model);
+        Task<ApiResponse<bool>> DeleteMenuItemAsync(int id);
     }
 } 

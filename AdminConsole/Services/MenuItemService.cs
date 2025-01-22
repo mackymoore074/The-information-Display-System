@@ -27,182 +27,99 @@ namespace AdminConsole.Services
         {
             try
             {
-                _logger.LogInformation("Getting all menu items");
-                
-                var token = await _localStorage.GetItemAsync<string>("authToken");
-                _httpClient.DefaultRequestHeaders.Authorization = 
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var response = await _httpClient.GetAsync("api/MenuItem");
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"MenuItem response content: {content}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<List<MenuItem>>>();
-                    return result ?? new ApiResponse<List<MenuItem>>
-                    {
-                        Success = false,
-                        Message = "Failed to deserialize menu items response"
-                    };
-                }
-                else
-                {
-                    _logger.LogWarning($"Failed to get menu items. Status: {response.StatusCode}");
-                    return new ApiResponse<List<MenuItem>>
-                    {
-                        Success = false,
-                        Message = $"Failed to get menu items. Status: {response.StatusCode}",
-                        Errors = new List<string> { content }
-                    };
-                }
+                return await _httpClient.GetFromJsonAsync<ApiResponse<List<MenuItem>>>("api/menuitem");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error getting menu items: {ex.Message}");
                 return new ApiResponse<List<MenuItem>>
                 {
                     Success = false,
-                    Message = "Error getting menu items",
-                    Errors = new List<string> { ex.Message }
+                    Message = $"Error retrieving menu items: {ex.Message}"
                 };
             }
         }
 
-        public async Task<ApiResponse<MenuItem>> CreateMenuItemAsync(CreateMenuItemDto menuItem)
+        public async Task<ApiResponse<MenuItem>> GetMenuItemAsync(int id)
         {
             try
             {
-                _logger.LogInformation($"Creating menu item: {System.Text.Json.JsonSerializer.Serialize(menuItem)}");
-                
-                var token = await _localStorage.GetItemAsync<string>("authToken");
-                _httpClient.DefaultRequestHeaders.Authorization = 
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var response = await _httpClient.PostAsJsonAsync("api/MenuItem", menuItem);
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"Create menu item response: {content}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<MenuItem>>();
-                    return result ?? new ApiResponse<MenuItem>
-                    {
-                        Success = false,
-                        Message = "Failed to deserialize create response"
-                    };
-                }
-                else
-                {
-                    _logger.LogWarning($"Failed to create menu item. Status: {response.StatusCode}");
-                    return new ApiResponse<MenuItem>
-                    {
-                        Success = false,
-                        Message = $"Failed to create menu item. Status: {response.StatusCode}",
-                        Errors = new List<string> { content }
-                    };
-                }
+                return await _httpClient.GetFromJsonAsync<ApiResponse<MenuItem>>($"api/menuitem/{id}");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error creating menu item: {ex.Message}");
                 return new ApiResponse<MenuItem>
                 {
                     Success = false,
-                    Message = "Error creating menu item",
-                    Errors = new List<string> { ex.Message }
+                    Message = $"Error retrieving menu item: {ex.Message}"
                 };
             }
         }
 
-        public async Task<ApiResponse<MenuItem>> UpdateMenuItemAsync(int id, CreateMenuItemDto menuItem)
+        public async Task<ApiResponse<MenuItem>> CreateMenuItemAsync(CreateMenuItemDto model)
         {
             try
             {
-                _logger.LogInformation($"Updating menu item {id}: {System.Text.Json.JsonSerializer.Serialize(menuItem)}");
-                
-                var token = await _localStorage.GetItemAsync<string>("authToken");
-                _httpClient.DefaultRequestHeaders.Authorization = 
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var response = await _httpClient.PutAsJsonAsync($"api/MenuItem/{id}", menuItem);
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"Update menu item response: {content}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<MenuItem>>();
-                    return result ?? new ApiResponse<MenuItem>
-                    {
-                        Success = false,
-                        Message = "Failed to deserialize update response"
-                    };
-                }
-                else
-                {
-                    _logger.LogWarning($"Failed to update menu item. Status: {response.StatusCode}");
-                    return new ApiResponse<MenuItem>
-                    {
-                        Success = false,
-                        Message = $"Failed to update menu item. Status: {response.StatusCode}",
-                        Errors = new List<string> { content }
-                    };
-                }
+                var response = await _httpClient.PostAsJsonAsync("api/menuitem", model);
+                return await response.Content.ReadFromJsonAsync<ApiResponse<MenuItem>>();
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error updating menu item: {ex.Message}");
                 return new ApiResponse<MenuItem>
                 {
                     Success = false,
-                    Message = "Error updating menu item",
-                    Errors = new List<string> { ex.Message }
+                    Message = $"Error creating menu item: {ex.Message}"
                 };
             }
         }
 
-        public async Task<ApiResponse<object>> DeleteMenuItemAsync(int id)
+        public async Task<ApiResponse<MenuItem>> UpdateMenuItemAsync(int id, CreateMenuItemDto model)
         {
             try
             {
-                _logger.LogInformation($"Deleting menu item {id}");
-                
-                var token = await _localStorage.GetItemAsync<string>("authToken");
-                _httpClient.DefaultRequestHeaders.Authorization = 
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                var response = await _httpClient.PutAsJsonAsync($"api/menuitem/{id}", model);
+                return await response.Content.ReadFromJsonAsync<ApiResponse<MenuItem>>();
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<MenuItem>
+                {
+                    Success = false,
+                    Message = $"Error updating menu item: {ex.Message}"
+                };
+            }
+        }
 
-                var response = await _httpClient.DeleteAsync($"api/MenuItem/{id}");
-                var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation($"Delete menu item response: {content}");
-
+        public async Task<ApiResponse<bool>> DeleteMenuItemAsync(int id)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"api/menuitem/{id}");
                 if (response.IsSuccessStatusCode)
                 {
-                    var result = await response.Content.ReadFromJsonAsync<ApiResponse<object>>();
-                    return result ?? new ApiResponse<object>
+                    return new ApiResponse<bool>
                     {
-                        Success = false,
-                        Message = "Failed to deserialize delete response"
+                        Success = true,
+                        Data = true,
+                        Message = "Menu item deleted successfully"
                     };
                 }
                 else
                 {
-                    _logger.LogWarning($"Failed to delete menu item. Status: {response.StatusCode}");
-                    return new ApiResponse<object>
+                    return new ApiResponse<bool>
                     {
                         Success = false,
-                        Message = $"Failed to delete menu item. Status: {response.StatusCode}",
-                        Errors = new List<string> { content }
+                        Data = false,
+                        Message = "Failed to delete menu item"
                     };
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error deleting menu item: {ex.Message}");
-                return new ApiResponse<object>
+                return new ApiResponse<bool>
                 {
                     Success = false,
-                    Message = "Error deleting menu item",
-                    Errors = new List<string> { ex.Message }
+                    Data = false,
+                    Message = $"Error deleting menu item: {ex.Message}"
                 };
             }
         }

@@ -1,0 +1,251 @@
+@page "/menu-items/add"
+@using AdminConsole.IService
+@using ClassLibrary.Models
+@using ClassLibrary.DtoModels.MenuItem
+@using ClassLibrary.DtoModels.Department
+@using ClassLibrary.DtoModels.Location
+@using ClassLibrary.DtoModels.Screen
+@using ClassLibrary.DtoModels.Common
+@inject IMenuItemService MenuItemService
+@inject IDepartmentService DepartmentService
+@inject ILocationService LocationService
+@inject IScreenService ScreenService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime
+@attribute [Authorize]
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Add Menu Item</h5>
+
+            <EditForm Model="@model" OnValidSubmit="SaveMenuItem">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <InputText class="form-control" @bind-Value="model.Title" />
+                    <ValidationMessage For="@(() => model.Title)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <InputTextArea class="form-control" @bind-Value="model.Description" rows="5" />
+                    <ValidationMessage For="@(() => model.Description)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Time Out Date</label>
+                        <InputDate class="form-control" @bind-Value="model.TimeOutDate" />
+                        <ValidationMessage For="@(() => model.TimeOutDate)" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Type</label>
+                        <InputSelect class="form-select" @bind-Value="model.Type">
+                            @foreach (MealType type in Enum.GetValues(typeof(MealType)))
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Price</label>
+                    <InputNumber class="form-control" @bind-Value="model.Price" />
+                    <ValidationMessage For="@(() => model.Price)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                Departments
+                            </div>
+                            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                @if (departments == null)
+                                {
+                                    <div class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @foreach (var dept in departments)
+                                    {
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@deptSelections[dept.Id]"
+                                                   @onchange="@(e => deptSelections[dept.Id] = (bool)e.Value)" />
+                                            <label class="form-check-label">
+                                                @dept.Name
+                                            </label>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                Locations
+                            </div>
+                            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                @if (locations == null)
+                                {
+                                    <div class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @foreach (var loc in locations)
+                                    {
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@locSelections[loc.Id]"
+                                                   @onchange="@(e => locSelections[loc.Id] = (bool)e.Value)" />
+                                            <label class="form-check-label">
+                                                @loc.Name
+                                            </label>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                Screens
+                            </div>
+                            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                @if (screens == null)
+                                {
+                                    <div class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    @foreach (var screen in screens)
+                                    {
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@screenSelections[screen.Id]"
+                                                   @onchange="@(e => screenSelections[screen.Id] = (bool)e.Value)" />
+                                            <label class="form-check-label">
+                                                @screen.Name
+                                            </label>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-secondary me-2" @onclick="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<DepartmentDto> departments;
+    private List<LocationDto> locations;
+    private List<ScreenDto> screens;
+    private Dictionary<int, bool> deptSelections = new();
+    private Dictionary<int, bool> locSelections = new();
+    private Dictionary<int, bool> screenSelections = new();
+    private CreateMenuItemDto model = new() { TimeOutDate = DateTime.UtcNow.AddDays(7) };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRelatedData();
+    }
+
+    private async Task LoadRelatedData()
+    {
+        try
+        {
+            var deptResponse = await DepartmentService.GetDepartmentsAsync();
+            if (deptResponse.Success)
+            {
+                departments = deptResponse.Data.ToList();
+                foreach (var dept in departments)
+                {
+                    deptSelections[dept.Id] = false;
+                }
+            }
+
+            var locResponse = await LocationService.GetLocationsAsync();
+            if (locResponse.Success)
+            {
+                locations = locResponse.Data.ToList();
+                foreach (var loc in locations)
+                {
+                    locSelections[loc.Id] = false;
+                }
+            }
+
+            var screenResponse = await ScreenService.GetAllAsync();
+            if (screenResponse.Success)
+            {
+                screens = screenResponse.Data.ToList();
+                foreach (var screen in screens)
+                {
+                    screenSelections[screen.Id] = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error loading related data: {ex.Message}");
+        }
+    }
+
+    private async Task SaveMenuItem()
+    {
+        try
+        {
+            model.Departments = deptSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            model.Locations = locSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+            model.Screens = screenSelections.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+
+            var response = await MenuItemService.CreateMenuItemAsync(model);
+            if (response.Success)
+            {
+                NavigationManager.NavigateTo("/menu-items");
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", response.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error saving menu item: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/menu-items");
+    }
+}
